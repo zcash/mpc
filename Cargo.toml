@@ -1,0 +1,12 @@
+[package]
+name = "mpc"
+version = "0.0.1"
+authors = [
+	"Sean Bowe <ewillbefull@gmail.com>",
+	"Ariel Gabizon <ariel@z.cash>",
+	"Matthew Green <mgreen@cs.jhu.edu>"
+]
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+
+[dependencies]
