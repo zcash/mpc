@@ -3,9 +3,9 @@ use super::{Fr,GroupElement};
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct G2 {
-    x: [u64; 8],
-    y: [u64; 8],
-    z: [u64; 8]
+    x: [u64; 4 * 2],
+    y: [u64; 4 * 2],
+    z: [u64; 4 * 2]
 }
 
 extern "C" {
