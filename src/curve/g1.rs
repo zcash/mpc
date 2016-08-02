@@ -1,5 +1,5 @@
 use std::ops::{Add,Sub,Mul,Neg};
-use super::{Fr,GroupElement};
+use super::{Fr,Group};
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -29,7 +29,7 @@ impl PartialEq for G1 {
     }
 }
 
-impl GroupElement for G1 {
+impl Group for G1 {
     fn zero() -> G1 {
         unsafe { bnwrap_G1_zero() }
     }

@@ -34,7 +34,7 @@ pub fn pairing(p: &G1, q: &G2) -> Gt {
     unsafe { bnwrap_pairing(p, q) }
 }
 
-pub trait GroupElement: Sized +
+pub trait Group: Sized +
                         Copy +
                         Clone +
                         Mul<Fr, Output=Self> +
@@ -70,9 +70,9 @@ fn pairing_test() {
 }
 
 mod test_groups {
-    use super::{Fr, G1, G2, initialize, GroupElement};
+    use super::{Fr, G1, G2, initialize, Group};
 
-    fn test_associative<G: GroupElement>() {
+    fn test_associative<G: Group>() {
         for _ in 0..50 {
             let a = G::random();
             let b = G::random();
@@ -85,7 +85,7 @@ mod test_groups {
         }
     }
 
-    fn test_primitives<G: GroupElement>() {
+    fn test_primitives<G: Group>() {
         let a = G::zero();
         let b = G::one();
 
@@ -93,7 +93,7 @@ mod test_groups {
         assert_eq!(b.is_zero(), false);
     }
 
-    fn test_scalar_mul<G: GroupElement>() {
+    fn test_scalar_mul<G: Group>() {
         let r = G::random();
         let res = r * Fr::from_str("16");
 
@@ -106,7 +106,7 @@ mod test_groups {
         assert!(acc == res);
     }
 
-    fn test_addition<G: GroupElement>() {
+    fn test_addition<G: Group>() {
         {
             let a = G::random();
             let b = -(a);
@@ -124,7 +124,7 @@ mod test_groups {
         }
     }
 
-    fn test_allocations_and_moves<G: GroupElement>() {
+    fn test_allocations_and_moves<G: Group>() {
         let a: Vec<G> = (0..100)
                                .map(|i| (G::one() * Fr::from_str(&format!("{}", i))))
                                .collect();
@@ -134,7 +134,7 @@ mod test_groups {
         assert!(b == G::one() * Fr::from_str("4950"));
     }
 
-    fn test_group_ops<G: GroupElement>() {
+    fn test_group_ops<G: Group>() {
         test_associative::<G>();
         test_primitives::<G>();
         test_scalar_mul::<G>();
