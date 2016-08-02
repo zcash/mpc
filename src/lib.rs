@@ -4,8 +4,4 @@ extern crate lazy_static;
 
 mod curve;
 
-use curve::*;
-
-fn main() {
-    initialize();
-}
+pub use self::curve::{G1, G2, Gt, Fr, pairing, initialize};
