@@ -21,6 +21,12 @@ extern "C" void bnwrap_init() {
     init_alt_bn128_params();
 }
 
+extern "C" FieldT bnwrap_fr_from(const char *a) {
+    return FieldT(a);
+}
+
+// G1
+
 extern "C" alt_bn128_G1 bnwrap_G1_zero() {
     return alt_bn128_G1::zero();
 }
@@ -57,6 +63,40 @@ extern "C" alt_bn128_G1 bnwrap_G1_scalarmul(alt_bn128_G1 *p, FieldT *q) {
     return (*q) * (*p);
 }
 
-extern "C" FieldT bnwrap_fr_from(const char *a) {
-    return FieldT(a);
+// G2
+
+extern "C" alt_bn128_G2 bnwrap_G2_zero() {
+    return alt_bn128_G2::zero();
+}
+
+extern "C" alt_bn128_G2 bnwrap_G2_one() {
+    return alt_bn128_G2::one();
+}
+
+extern "C" alt_bn128_G2 bnwrap_G2_random() {
+    return alt_bn128_G2::random_element();
+}
+
+extern "C" bool bnwrap_G2_is_zero(alt_bn128_G2 *p) {
+    return p->is_zero();
+}
+
+extern "C" bool bnwrap_G2_is_equal(alt_bn128_G2 *p, alt_bn128_G2 *q) {
+    return *p == *q;
+}
+
+extern "C" alt_bn128_G2 bnwrap_G2_add(alt_bn128_G2 *p, alt_bn128_G2 *q) {
+    return *p + *q;
+}
+
+extern "C" alt_bn128_G2 bnwrap_G2_sub(alt_bn128_G2 *p, alt_bn128_G2 *q) {
+    return *p - *q;
+}
+
+extern "C" alt_bn128_G2 bnwrap_G2_neg(alt_bn128_G2 *p) {
+    return -(*p);
+}
+
+extern "C" alt_bn128_G2 bnwrap_G2_scalarmul(alt_bn128_G2 *p, FieldT *q) {
+    return (*q) * (*p);
 }

@@ -4,8 +4,10 @@ use libc::c_char;
 use std::ffi::CString;
 
 mod g1;
+mod g2;
 
 pub type G1 = G<g1::G1>;
+pub type G2 = G<g2::G2>;
 
 extern "C" {
     fn bnwrap_init();
@@ -35,7 +37,7 @@ extern "C" {
 }
 
 impl Fr {
-    pub fn from_str(s: &'static str) -> Self {
+    pub fn from_str(s: &str) -> Self {
         for c in s.chars() {
             if c != '0' &&
                c != '1' &&
@@ -131,7 +133,17 @@ impl<'a, 'b, T: GroupElement> Mul<&'a Fr> for &'b G<T> {
 }
 
 mod test {
-    use super::{G, Fr, g1, initialize, GroupElement};
+    use super::{G, Fr, g1, g2, initialize, GroupElement};
+
+    fn test_allocations_and_moves<Group: GroupElement>() {
+        let a: Vec<G<Group>> = (0..100)
+                               .map(|i| (&G::one() * &Fr::from_str(&format!("{}", i))))
+                               .collect();
+
+        let b = a.into_iter().fold(G::zero(), |a, b| &a + &b);
+
+        assert!(b == &G::one() * &Fr::from_str("4950"));
+    }
 
     fn test_associative<Group: GroupElement>() {
         for _ in 0..50 {
@@ -190,6 +202,7 @@ mod test {
         test_primitives::<Group>();
         test_scalar_mul::<Group>();
         test_addition::<Group>();
+        test_allocations_and_moves::<Group>();
     }
 
     #[test]
@@ -197,5 +210,12 @@ mod test {
         initialize();
 
         test_group_ops::<g1::G1>();
+    }
+
+    #[test]
+    fn test_g2() {
+        initialize();
+
+        test_group_ops::<g2::G2>();
     }
 }
