@@ -9,4 +9,11 @@ authors = [
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 
+build = "src/build.rs"
+
+[build-dependencies]
+gcc = "0.3.*"
+
 [dependencies]
+libc = "0.2.*"
+lazy_static = "0.1.*"
