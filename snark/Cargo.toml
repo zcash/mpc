@@ -1,5 +1,5 @@
 [package]
-name = "mpc_snark"
+name = "snark"
 version = "0.0.1"
 authors = [
 	"Sean Bowe <ewillbefull@gmail.com>",

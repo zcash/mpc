@@ -1,6 +1,6 @@
-extern crate mpc_snark;
+extern crate snark;
 
-use mpc_snark::*;
+use snark::*;
 
 fn main() {
 	initialize();
