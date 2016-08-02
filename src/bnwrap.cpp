@@ -23,23 +23,23 @@ extern "C" void bnwrap_init() {
 
 // Fr
 
-extern "C" FieldT bnwrap_fr_from(const char *a) {
+extern "C" FieldT bnwrap_Fr_from(const char *a) {
     return FieldT(a);
 }
 
-extern "C" FieldT bnwrap_fr_add(const char *a, const char *b) {
+extern "C" FieldT bnwrap_Fr_add(const char *a, const char *b) {
     return *a + *b;
 }
 
-extern "C" FieldT bnwrap_fr_sub(const char *a, const char *b) {
+extern "C" FieldT bnwrap_Fr_sub(const char *a, const char *b) {
     return *a - *b;
 }
 
-extern "C" FieldT bnwrap_fr_mul(const char *a, const char *b) {
+extern "C" FieldT bnwrap_Fr_mul(const char *a, const char *b) {
     return *a * *b;
 }
 
-extern "C" FieldT bnwrap_fr_neg(const char *a) {
+extern "C" FieldT bnwrap_Fr_neg(const char *a) {
     return -(*a);
 }
 

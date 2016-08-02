@@ -1,3 +1,4 @@
+use std::ops::{Add,Sub,Mul,Neg};
 use super::{Fr,GroupElement};
 
 #[derive(Copy, Clone)]
@@ -22,6 +23,12 @@ extern "C" {
     fn bnwrap_G1_scalarmul(p: *const G1, s: *const Fr) -> G1;
 }
 
+impl PartialEq for G1 {
+    fn eq(&self, other: &G1) -> bool {
+        unsafe { bnwrap_G1_is_equal(self, other) }
+    }
+}
+
 impl GroupElement for G1 {
     fn zero() -> G1 {
         unsafe { bnwrap_G1_zero() }
@@ -31,10 +38,6 @@ impl GroupElement for G1 {
         unsafe { bnwrap_G1_one() }
     }
 
-    fn is_equal(&self, other: &Self) -> bool {
-        unsafe { bnwrap_G1_is_equal(self, other) }
-    }
-
     fn random() -> G1 {
         unsafe { bnwrap_G1_random() }
     }
@@ -42,20 +45,36 @@ impl GroupElement for G1 {
     fn is_zero(&self) -> bool {
         unsafe { bnwrap_G1_is_zero(self) }
     }
+}
 
-    fn arith_neg(&self) -> Self {
-        unsafe { bnwrap_G1_neg(self) }
+impl Add for G1 {
+    type Output = G1;
+
+    fn add(self, other: G1) -> G1 {
+        unsafe { bnwrap_G1_add(&self, &other) }
     }
+}
 
-    fn arith_add(&self, other: &Self) -> Self {
-        unsafe { bnwrap_G1_add(self, other) }
+impl Mul<Fr> for G1 {
+    type Output = G1;
+
+    fn mul(self, other: Fr) -> G1 {
+        unsafe { bnwrap_G1_scalarmul(&self, &other) }
     }
+}
 
-    fn arith_sub(&self, other: &Self) -> Self {
-        unsafe { bnwrap_G1_sub(self, other) }
+impl Sub for G1 {
+    type Output = G1;
+
+    fn sub(self, other: G1) -> G1 {
+        unsafe { bnwrap_G1_sub(&self, &other) }
     }
+}
 
-    fn arith_mul(&self, other: &Fr) -> Self {
-        unsafe { bnwrap_G1_scalarmul(self, other) }
+impl Neg for G1 {
+    type Output = G1;
+
+    fn neg(self) -> G1 {
+        unsafe { bnwrap_G1_neg(&self) }
     }
 }
