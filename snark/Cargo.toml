@@ -1,5 +1,5 @@
 [package]
-name = "mpc"
+name = "mpc_snark"
 version = "0.0.1"
 authors = [
 	"Sean Bowe <ewillbefull@gmail.com>",
@@ -7,7 +7,12 @@ authors = [
 	"Matthew Green <mgreen@cs.jhu.edu>"
 ]
 license = "MIT OR Apache-2.0"
-readme = "README.md"
+
+build = "src/build.rs"
+
+[build-dependencies]
+gcc = "0.3.*"
 
 [dependencies]
-mpc_snark = { path = "./snark/" }
+libc = "0.2.*"
+lazy_static = "0.1.*"
