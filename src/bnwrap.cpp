@@ -21,8 +21,26 @@ extern "C" void bnwrap_init() {
     init_alt_bn128_params();
 }
 
+// Fr
+
 extern "C" FieldT bnwrap_fr_from(const char *a) {
     return FieldT(a);
+}
+
+extern "C" FieldT bnwrap_fr_add(const char *a, const char *b) {
+    return *a + *b;
+}
+
+extern "C" FieldT bnwrap_fr_sub(const char *a, const char *b) {
+    return *a - *b;
+}
+
+extern "C" FieldT bnwrap_fr_mul(const char *a, const char *b) {
+    return *a * *b;
+}
+
+extern "C" FieldT bnwrap_fr_neg(const char *a) {
+    return -(*a);
 }
 
 // G1

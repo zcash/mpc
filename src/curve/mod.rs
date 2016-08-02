@@ -34,6 +34,10 @@ pub struct Fr([u64; 4]);
 
 extern "C" {
     fn bnwrap_fr_from(s: *const c_char) -> Fr;
+    fn bnwrap_fr_add(a: *const Fr, b: *const Fr) -> Fr;
+    fn bnwrap_fr_mul(a: *const Fr, b: *const Fr) -> Fr;
+    fn bnwrap_fr_sub(a: *const Fr, b: *const Fr) -> Fr;
+    fn bnwrap_fr_neg(a: *const Fr) -> Fr;
 }
 
 impl Fr {
@@ -56,6 +60,38 @@ impl Fr {
         let s = CString::new(s).unwrap();
 
         unsafe { bnwrap_fr_from(s.as_ptr()) }
+    }
+}
+
+impl Add for Fr {
+    type Output = Fr;
+
+    fn add(self, other: Fr) -> Fr {
+        unsafe { bnwrap_fr_add(&self, &other) }
+    }
+}
+
+impl Mul for Fr {
+    type Output = Fr;
+
+    fn mul(self, other: Fr) -> Fr {
+        unsafe { bnwrap_fr_mul(&self, &other) }
+    }
+}
+
+impl Sub for Fr {
+    type Output = Fr;
+
+    fn sub(self, other: Fr) -> Fr {
+        unsafe { bnwrap_fr_sub(&self, &other) }
+    }
+}
+
+impl Neg for Fr {
+    type Output = Fr;
+
+    fn neg(self) -> Fr {
+        unsafe { bnwrap_fr_neg(&self) }
     }
 }
 
@@ -100,7 +136,7 @@ impl<T: GroupElement> PartialEq for G<T> {
     }
 }
 
-impl<'a, T: GroupElement> Neg for &'a G<T> {
+impl<T: GroupElement> Neg for G<T> {
     type Output = G<T>;
 
     fn neg(self) -> G<T> {
@@ -108,41 +144,41 @@ impl<'a, T: GroupElement> Neg for &'a G<T> {
     }
 }
 
-impl<'a, 'b, T: GroupElement> Add<&'a G<T>> for &'b G<T> {
+impl<T: GroupElement> Add for G<T> {
     type Output = G<T>;
 
-    fn add(self, other: &G<T>) -> G<T> {
+    fn add(self, other: G<T>) -> G<T> {
         G(self.0.arith_add(&other.0))
     }
 }
 
-impl<'a, 'b, T: GroupElement> Sub<&'a G<T>> for &'b G<T> {
+impl<T: GroupElement> Sub for G<T> {
     type Output = G<T>;
 
-    fn sub(self, other: &G<T>) -> G<T> {
+    fn sub(self, other: G<T>) -> G<T> {
         G(self.0.arith_sub(&other.0))
     }
 }
 
-impl<'a, 'b, T: GroupElement> Mul<&'a Fr> for &'b G<T> {
+impl<T: GroupElement> Mul<Fr> for G<T> {
     type Output = G<T>;
 
-    fn mul(self, other: &Fr) -> G<T> {
-        G(self.0.arith_mul(other))
+    fn mul(self, other: Fr) -> G<T> {
+        G(self.0.arith_mul(&other))
     }
 }
 
-mod test {
+mod test_groups {
     use super::{G, Fr, g1, g2, initialize, GroupElement};
 
     fn test_allocations_and_moves<Group: GroupElement>() {
         let a: Vec<G<Group>> = (0..100)
-                               .map(|i| (&G::one() * &Fr::from_str(&format!("{}", i))))
+                               .map(|i| (G::one() * Fr::from_str(&format!("{}", i))))
                                .collect();
 
-        let b = a.into_iter().fold(G::zero(), |a, b| &a + &b);
+        let b = a.into_iter().fold(G::zero(), |a, b| a + b);
 
-        assert!(b == &G::one() * &Fr::from_str("4950"));
+        assert!(b == G::one() * Fr::from_str("4950"));
     }
 
     fn test_associative<Group: GroupElement>() {
@@ -151,8 +187,8 @@ mod test {
             let b = G::<Group>::random();
             let c = G::<Group>::random();
 
-            let x = &(&a + &b) + &c;
-            let y = &(&a + &c) + &b;
+            let x = (a + b) + c;
+            let y = (a + c) + b;
 
             assert!(x == y);
         }
@@ -160,12 +196,12 @@ mod test {
 
     fn test_scalar_mul<Group: GroupElement>() {
         let r = G::<Group>::random();
-        let res = &r * &Fr::from_str("16");
+        let res = r * Fr::from_str("16");
 
         let mut acc = G::<Group>::zero();
 
         for _ in 0..16 {
-            acc = &acc + &r;
+            acc = acc + r;
         }
 
         assert!(acc == res);
@@ -174,16 +210,16 @@ mod test {
     fn test_addition<Group: GroupElement>() {
         {
             let a = G::<Group>::random();
-            let b = -(&a);
-            let c = &a + &b;
+            let b = -(a);
+            let c = a + b;
 
             assert!(c.is_zero());
         }
         {
             let a = G::<Group>::random();
-            let b = -(&a);
-            let c = &a - &b;
-            let d = &a * &Fr::from_str("2");
+            let b = -(a);
+            let c = a - b;
+            let d = a * Fr::from_str("2");
 
             assert!(c == d);
         }
