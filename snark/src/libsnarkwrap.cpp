@@ -33,20 +33,24 @@ extern "C" FieldT libsnarkwrap_Fr_from(const char *a) {
     return FieldT(a);
 }
 
-extern "C" FieldT libsnarkwrap_Fr_add(const char *a, const char *b) {
+extern "C" FieldT libsnarkwrap_Fr_add(FieldT *a, FieldT *b) {
     return *a + *b;
 }
 
-extern "C" FieldT libsnarkwrap_Fr_sub(const char *a, const char *b) {
+extern "C" FieldT libsnarkwrap_Fr_sub(FieldT *a, FieldT *b) {
     return *a - *b;
 }
 
-extern "C" FieldT libsnarkwrap_Fr_mul(const char *a, const char *b) {
+extern "C" FieldT libsnarkwrap_Fr_mul(FieldT *a, FieldT *b) {
     return *a * *b;
 }
 
-extern "C" FieldT libsnarkwrap_Fr_neg(const char *a) {
+extern "C" FieldT libsnarkwrap_Fr_neg(FieldT *a) {
     return -(*a);
+}
+
+extern "C" bool libsnarkwrap_Fr_is_zero(FieldT *a) {
+    return a->is_zero();
 }
 
 // G1

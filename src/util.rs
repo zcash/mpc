@@ -26,3 +26,11 @@ impl<'a, T: 'a, I: Iterator<Item=&'a T>> Iterator for Sequences<'a, T, I> {
         }
     }
 }
+
+#[test]
+fn test_sequences() {
+    let a = vec![10, 57, 34, 12];
+    let b: Vec<(&usize, &usize)> = Sequences::new(a.iter()).collect();
+    let expected = vec![(&a[0], &a[1]), (&a[1], &a[2]), (&a[2], &a[3])];
+    assert_eq!(b, expected);
+}

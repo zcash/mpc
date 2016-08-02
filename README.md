@@ -1,6 +1,6 @@
 # mpc
 
-This is a multi-party computation protocol for the key-generation step of Pinnochio zkSNARKs [[PGHR13]](https://eprint.iacr.org/2013/279) designed for use in the Zcash "Sprout" public parameter ceremony.
+This is a multi-party computation protocol for the key-generation step of Pinocchio zkSNARKs [[PGHR13]](https://eprint.iacr.org/2013/279) designed for use in the Zcash "Sprout" public parameter ceremony.
 
 ## License
 

@@ -37,6 +37,8 @@ where Group1: Pairing<Group2> {
     pairing(&a.p, &b.q) == pairing(&a.q, &b.p)
 }
 
+/// This performs a check to see if a large number of (p,q) pairs in G
+/// have the same power, with only one pairing.
 fn check<'a,
          Group1: Group,
          Group2: Group,
@@ -48,7 +50,7 @@ where Group1: Pairing<Group2>
     let mut q = Group1::zero();
 
     for v in i {
-        let alpha = Fr::random();
+        let alpha = Fr::random_nonzero();
         p = p + *v.0 * alpha;
         q = q + *v.1 * alpha;
     }
@@ -76,6 +78,72 @@ fn checkseq<'a,
 where Group1: Pairing<Group2>
 {
     check(Sequences::new(i), a)
+}
+
+struct TauPowers {
+    acc: Fr,
+    tau: Fr
+}
+
+impl TauPowers {
+    fn new(tau: Fr) -> TauPowers {
+        TauPowers { acc: Fr::from_str("1"), tau: tau }
+    }
+}
+
+impl Iterator for TauPowers {
+    type Item = Fr;
+
+    fn next(&mut self) -> Option<Fr> {
+        let tmp = self.acc;
+        self.acc = tmp * self.tau;
+        Some(tmp)
+    }
+}
+
+#[test]
+fn randompowers_simulation() {
+    initialize();
+
+    let parties = 3;
+    let d = 1024;
+
+    let mut messages: Vec<(Spair<G2>, Vec<G1>, Vec<G2>)> = vec![];
+    messages.reserve(parties);
+
+    for i in 0..parties {
+        let tau = Fr::random_nonzero();
+        let rp = Spair::random(&tau);
+
+        if i == 0 {
+            messages.push((
+                rp,
+                TauPowers::new(tau).map(|p| G1::one() * p).take(d).collect(),
+                TauPowers::new(tau).map(|p| G2::one() * p).take(d).collect()
+            ));
+        } else {
+            let v1 = messages[i-1].1.iter().zip(TauPowers::new(tau)).map(|(b, p)| *b * p).collect();
+            let v2 = messages[i-1].2.iter().zip(TauPowers::new(tau)).map(|(b, p)| *b * p).collect();
+
+            messages.push((
+                rp,
+                v1,
+                v2
+            ));
+        }
+    }
+
+    // Check validity
+    for i in 0..parties {
+        if i == 0 {
+            assert!(checkseq(messages[i].1.iter(), &messages[i].0));
+            assert!(checkseq(messages[i].2.iter(), &Spair::new(&messages[i].1[0], &messages[i].1[1])));
+        } else {
+            assert!(checkseq(messages[i].1.iter(), &Spair::new(&messages[i].2[0], &messages[i].2[1])));
+            assert!(checkseq(messages[i].2.iter(), &Spair::new(&messages[i].1[0], &messages[i].1[1])));
+            assert!(same_power(&Spair::new(&messages[i-1].1[1], &messages[i].1[1]), &messages[i].0));
+        }
+    }
 }
 
 #[test]
