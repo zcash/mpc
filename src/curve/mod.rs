@@ -13,6 +13,7 @@ pub use self::g2::G2;
 
 extern "C" {
     fn bnwrap_init();
+    fn bnwrap_pairing(p: *const G1, q: *const G2) -> Gt;
 }
 
 lazy_static! {
@@ -29,6 +30,10 @@ pub fn initialize() {
     }
 }
 
+pub fn pairing(p: &G1, q: &G2) -> Gt {
+    unsafe { bnwrap_pairing(p, q) }
+}
+
 pub trait GroupElement: Sized +
                         Copy +
                         Clone +
@@ -41,6 +46,27 @@ pub trait GroupElement: Sized +
     fn one() -> Self;
     fn random() -> Self;
     fn is_zero(&self) -> bool;
+}
+
+#[test]
+fn pairing_test() {
+    initialize();
+
+    for _ in 0..50 {
+        let p = G1::random();
+        let q = G2::random();
+        let s = Fr::random();
+
+        let sp = p * s;
+        let sq = q * s;
+
+        let a = pairing(&p, &q) * s;
+        let b = pairing(&sp, &q);
+        let c = pairing(&p, &sq);
+
+        assert!(a == b);
+        assert!(b == c);
+    }
 }
 
 mod test_groups {

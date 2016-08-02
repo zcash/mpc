@@ -17,11 +17,17 @@ using namespace libsnark;
 typedef Fr<alt_bn128_pp> FieldT;
 
 extern "C" void bnwrap_init() {
+    libsnark::inhibit_profiling_info = true;
+    libsnark::inhibit_profiling_counters = true;
     assert(sodium_init() != -1);
     init_alt_bn128_params();
 }
 
 // Fr
+
+extern "C" FieldT bnwrap_Fr_random() {
+    return FieldT::random_element();
+}
 
 extern "C" FieldT bnwrap_Fr_from(const char *a) {
     return FieldT(a);
@@ -117,4 +123,14 @@ extern "C" alt_bn128_G2 bnwrap_G2_neg(alt_bn128_G2 *p) {
 
 extern "C" alt_bn128_G2 bnwrap_G2_scalarmul(alt_bn128_G2 *p, FieldT *q) {
     return (*q) * (*p);
+}
+
+// Pairing
+
+extern "C" alt_bn128_GT bnwrap_gt_exp(alt_bn128_GT *p, FieldT *s) {
+    return (*p) ^ (*s);
+}
+
+extern "C" alt_bn128_GT bnwrap_pairing(alt_bn128_G1 *p, alt_bn128_G2 *q) {
+    return alt_bn128_reduced_pairing(*p, *q);
 }

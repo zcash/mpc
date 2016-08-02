@@ -8,6 +8,7 @@ use std::ffi::CString;
 pub struct Fr([u64; 4]);
 
 extern "C" {
+    fn bnwrap_Fr_random() -> Fr;
     fn bnwrap_Fr_from(s: *const c_char) -> Fr;
     fn bnwrap_Fr_add(a: *const Fr, b: *const Fr) -> Fr;
     fn bnwrap_Fr_mul(a: *const Fr, b: *const Fr) -> Fr;
@@ -16,6 +17,10 @@ extern "C" {
 }
 
 impl Fr {
+    pub fn random() -> Self {
+        unsafe { bnwrap_Fr_random() }
+    }
+
     pub fn from_str(s: &str) -> Self {
         for c in s.chars() {
             if c != '0' &&
