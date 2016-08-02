@@ -34,8 +34,31 @@ pub fn initialize() {
     }
 }
 
-pub fn pairing(p: &G1, q: &G2) -> Gt {
-    unsafe { libsnarkwrap_pairing(p, q) }
+pub trait Pairing<Other: Group> {
+    fn g1<'a>(&'a self, other: &'a Other) -> &'a G1;
+    fn g2<'a>(&'a self, other: &'a Other) -> &'a G2;
+}
+
+impl Pairing<G2> for G1 {
+    fn g1<'a>(&'a self, _: &'a G2) -> &'a G1 {
+        self
+    }
+    fn g2<'a>(&'a self, other: &'a G2) -> &'a G2 {
+        other
+    }
+}
+
+impl Pairing<G1> for G2 {
+    fn g1<'a>(&'a self, other: &'a G1) -> &'a G1 {
+        other
+    }
+    fn g2<'a>(&'a self, _: &'a G1) -> &'a G2 {
+        self
+    }
+}
+
+pub fn pairing<Ga: Group, Gb: Group>(p: &Ga, q: &Gb) -> Gt where Ga: Pairing<Gb> {
+    unsafe { libsnarkwrap_pairing(p.g1(q), p.g2(q)) }
 }
 
 pub trait Group: Sized +
@@ -45,7 +68,8 @@ pub trait Group: Sized +
                         Add<Output=Self> +
                         Sub<Output=Self> +
                         Neg<Output=Self> +
-                        PartialEq {
+                        PartialEq +
+                        'static {
     fn zero() -> Self;
     fn one() -> Self;
     fn random() -> Self;
@@ -73,6 +97,20 @@ fn pairing_test() {
     }
 }
 
+#[test]
+fn pairing_ordering_irrelevant() {
+    initialize();
+
+    let p = G1::random();
+    let q = G2::random();
+
+    let a = pairing(&p, &q);
+    let b = pairing(&q, &p);
+
+    assert!(a == b);
+}
+
+#[cfg(test)]
 mod test_groups {
     use super::{Fr, G1, G2, initialize, Group};
 
