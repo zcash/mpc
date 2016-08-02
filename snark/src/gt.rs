@@ -9,13 +9,13 @@ pub struct Gt {
 }
 
 extern "C" {
-    fn bnwrap_gt_exp(p: *const Gt, s: *const Fr) -> Gt;
+    fn libsnarkwrap_gt_exp(p: *const Gt, s: *const Fr) -> Gt;
 }
 
 impl Mul<Fr> for Gt {
     type Output = Gt;
 
     fn mul(self, other: Fr) -> Gt {
-        unsafe { bnwrap_gt_exp(&self, &other) }
+        unsafe { libsnarkwrap_gt_exp(&self, &other) }
     }
 }

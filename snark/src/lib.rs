@@ -16,8 +16,8 @@ pub use self::g1::G1;
 pub use self::g2::G2;
 
 extern "C" {
-    fn bnwrap_init();
-    fn bnwrap_pairing(p: *const G1, q: *const G2) -> Gt;
+    fn libsnarkwrap_init();
+    fn libsnarkwrap_pairing(p: *const G1, q: *const G2) -> Gt;
 }
 
 lazy_static! {
@@ -29,13 +29,13 @@ pub fn initialize() {
     let mut l = INIT_LOCK.lock().unwrap();
 
     if !*l {
-        unsafe { bnwrap_init(); }
+        unsafe { libsnarkwrap_init(); }
         *l = true;
     }
 }
 
 pub fn pairing(p: &G1, q: &G2) -> Gt {
-    unsafe { bnwrap_pairing(p, q) }
+    unsafe { libsnarkwrap_pairing(p, q) }
 }
 
 pub trait Group: Sized +
