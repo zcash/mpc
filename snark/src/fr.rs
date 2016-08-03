@@ -9,7 +9,10 @@ pub struct Fr([u64; 4]);
 
 extern "C" {
     fn libsnarkwrap_Fr_random() -> Fr;
+    fn libsnarkwrap_Fr_zero() -> Fr;
+    fn libsnarkwrap_Fr_one() -> Fr;
     fn libsnarkwrap_Fr_from(s: *const c_char) -> Fr;
+    fn libsnarkwrap_Fr_exp(a: *const Fr, b: u32) -> Fr;
     fn libsnarkwrap_Fr_add(a: *const Fr, b: *const Fr) -> Fr;
     fn libsnarkwrap_Fr_mul(a: *const Fr, b: *const Fr) -> Fr;
     fn libsnarkwrap_Fr_sub(a: *const Fr, b: *const Fr) -> Fr;
@@ -18,12 +21,24 @@ extern "C" {
 }
 
 impl Fr {
+    pub fn zero() -> Self {
+        unsafe { libsnarkwrap_Fr_zero() }
+    }
+
+    pub fn one() -> Self {
+        unsafe { libsnarkwrap_Fr_one() }
+    }
+
     pub fn random() -> Self {
         unsafe { libsnarkwrap_Fr_random() }
     }
 
     pub fn is_zero(&self) -> bool {
         unsafe { libsnarkwrap_Fr_is_zero(self) }
+    }
+
+    pub fn exp(&self, e: u32) -> Self {
+        unsafe { libsnarkwrap_Fr_exp(self, e) }
     }
 
     pub fn random_nonzero() -> Self {
@@ -100,11 +115,13 @@ fn test_basic_arith() {
     let aplusb = Fr::from_str("58026983333001444");
     let aminusb = Fr::from_str("11099269581669482");
     let aneg = Fr::from_str("21888242871839275222246405745257275088548364400416034343698169623449351160154");
+    let a50 = Fr::from_str("18657215030604597165059661904200246872501020503322948614804364624353607925980");
 
     assert!(ab == (a * b));
     assert!(aplusb == (a + b));
     assert!(aminusb == (a - b));
     assert!(aneg == (-a));
+    assert!(a50 == a.exp(50));
 }
 
 #[test]
@@ -114,5 +131,10 @@ fn test_primitives() {
     let a = Fr::from_str("0");
     assert!(a.is_zero());
     let a = Fr::from_str("1");
+    assert!(!a.is_zero());
+
+    let a = Fr::zero();
+    assert!(a.is_zero());
+    let a = Fr::one();
     assert!(!a.is_zero());
 }

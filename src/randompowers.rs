@@ -87,7 +87,7 @@ struct TauPowers {
 
 impl TauPowers {
     fn new(tau: Fr) -> TauPowers {
-        TauPowers { acc: Fr::from_str("1"), tau: tau }
+        TauPowers { acc: Fr::one(), tau: tau }
     }
 }
 
