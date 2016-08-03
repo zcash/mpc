@@ -8,6 +8,7 @@ fn main() {
     let mut cfg = gcc::Config::new();
 
      cfg.cpp(true)
+        .opt_level(2)
         .define("NO_PROCPS", None)
         .define("STATIC", None)
         .define("CURVE_ALT_BN128", None)
