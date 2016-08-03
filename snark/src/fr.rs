@@ -109,6 +109,8 @@ fn test_basic_arith() {
 
 #[test]
 fn test_primitives() {
+    super::initialize();
+
     let a = Fr::from_str("0");
     assert!(a.is_zero());
     let a = Fr::from_str("1");

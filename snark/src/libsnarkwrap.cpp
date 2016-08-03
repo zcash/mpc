@@ -1,12 +1,8 @@
 #include <sodium.h>
 #include <iostream>
 #include <stdexcept>
-#include "algebra/curves/alt_bn128/alt_bn128_g1.hpp"
 #include <assert.h>
-#include "algebra/curves/alt_bn128/alt_bn128_g2.hpp"
-#include "algebra/curves/alt_bn128/alt_bn128_init.hpp"
-#include "algebra/curves/alt_bn128/alt_bn128_pairing.hpp"
-#include "algebra/curves/alt_bn128/alt_bn128_pp.hpp"
+#include "common/default_types/r1cs_ppzksnark_pp.hpp"
 #include "algebra/curves/public_params.hpp"
 #include "relations/arithmetic_programs/qap/qap.hpp"
 #include "reductions/r1cs_to_qap/r1cs_to_qap.hpp"
@@ -14,127 +10,131 @@
 using namespace std;
 using namespace libsnark;
 
-typedef Fr<alt_bn128_pp> FieldT;
+typedef default_r1cs_ppzksnark_pp curve_pp;
+typedef default_r1cs_ppzksnark_pp::G1_type curve_G1;
+typedef default_r1cs_ppzksnark_pp::G2_type curve_G2;
+typedef default_r1cs_ppzksnark_pp::GT_type curve_GT;
+typedef default_r1cs_ppzksnark_pp::Fp_type curve_Fr;
 
 extern "C" void libsnarkwrap_init() {
     libsnark::inhibit_profiling_info = true;
     libsnark::inhibit_profiling_counters = true;
     assert(sodium_init() != -1);
-    init_alt_bn128_params();
+    curve_pp::init_public_params();
 }
 
 // Fr
 
-extern "C" FieldT libsnarkwrap_Fr_random() {
-    return FieldT::random_element();
+extern "C" curve_Fr libsnarkwrap_Fr_random() {
+    return curve_Fr::random_element();
 }
 
-extern "C" FieldT libsnarkwrap_Fr_from(const char *a) {
-    return FieldT(a);
+extern "C" curve_Fr libsnarkwrap_Fr_from(const char *a) {
+    return curve_Fr(a);
 }
 
-extern "C" FieldT libsnarkwrap_Fr_add(FieldT *a, FieldT *b) {
+extern "C" curve_Fr libsnarkwrap_Fr_add(curve_Fr *a, curve_Fr *b) {
     return *a + *b;
 }
 
-extern "C" FieldT libsnarkwrap_Fr_sub(FieldT *a, FieldT *b) {
+extern "C" curve_Fr libsnarkwrap_Fr_sub(curve_Fr *a, curve_Fr *b) {
     return *a - *b;
 }
 
-extern "C" FieldT libsnarkwrap_Fr_mul(FieldT *a, FieldT *b) {
+extern "C" curve_Fr libsnarkwrap_Fr_mul(curve_Fr *a, curve_Fr *b) {
     return *a * *b;
 }
 
-extern "C" FieldT libsnarkwrap_Fr_neg(FieldT *a) {
+extern "C" curve_Fr libsnarkwrap_Fr_neg(curve_Fr *a) {
     return -(*a);
 }
 
-extern "C" bool libsnarkwrap_Fr_is_zero(FieldT *a) {
+extern "C" bool libsnarkwrap_Fr_is_zero(curve_Fr *a) {
     return a->is_zero();
 }
 
 // G1
 
-extern "C" alt_bn128_G1 libsnarkwrap_G1_zero() {
-    return alt_bn128_G1::zero();
+extern "C" curve_G1 libsnarkwrap_G1_zero() {
+    return curve_G1::zero();
 }
 
-extern "C" alt_bn128_G1 libsnarkwrap_G1_one() {
-    return alt_bn128_G1::one();
+extern "C" curve_G1 libsnarkwrap_G1_one() {
+    return curve_G1::one();
 }
 
-extern "C" alt_bn128_G1 libsnarkwrap_G1_random() {
-    return alt_bn128_G1::random_element();
+extern "C" curve_G1 libsnarkwrap_G1_random() {
+    return curve_G1::random_element();
 }
 
-extern "C" bool libsnarkwrap_G1_is_zero(alt_bn128_G1 *p) {
+extern "C" bool libsnarkwrap_G1_is_zero(curve_G1 *p) {
     return p->is_zero();
 }
 
-extern "C" bool libsnarkwrap_G1_is_equal(alt_bn128_G1 *p, alt_bn128_G1 *q) {
+extern "C" bool libsnarkwrap_G1_is_equal(curve_G1 *p, curve_G1 *q) {
     return *p == *q;
 }
 
-extern "C" alt_bn128_G1 libsnarkwrap_G1_add(alt_bn128_G1 *p, alt_bn128_G1 *q) {
+extern "C" curve_G1 libsnarkwrap_G1_add(curve_G1 *p, curve_G1 *q) {
     return *p + *q;
 }
 
-extern "C" alt_bn128_G1 libsnarkwrap_G1_sub(alt_bn128_G1 *p, alt_bn128_G1 *q) {
+extern "C" curve_G1 libsnarkwrap_G1_sub(curve_G1 *p, curve_G1 *q) {
     return *p - *q;
 }
 
-extern "C" alt_bn128_G1 libsnarkwrap_G1_neg(alt_bn128_G1 *p) {
+extern "C" curve_G1 libsnarkwrap_G1_neg(curve_G1 *p) {
     return -(*p);
 }
 
-extern "C" alt_bn128_G1 libsnarkwrap_G1_scalarmul(alt_bn128_G1 *p, FieldT *q) {
+extern "C" curve_G1 libsnarkwrap_G1_scalarmul(curve_G1 *p, curve_Fr *q) {
     return (*q) * (*p);
 }
 
 // G2
 
-extern "C" alt_bn128_G2 libsnarkwrap_G2_zero() {
-    return alt_bn128_G2::zero();
+extern "C" curve_G2 libsnarkwrap_G2_zero() {
+    return curve_G2::zero();
 }
 
-extern "C" alt_bn128_G2 libsnarkwrap_G2_one() {
-    return alt_bn128_G2::one();
+extern "C" curve_G2 libsnarkwrap_G2_one() {
+    return curve_G2::one();
 }
 
-extern "C" alt_bn128_G2 libsnarkwrap_G2_random() {
-    return alt_bn128_G2::random_element();
+extern "C" curve_G2 libsnarkwrap_G2_random() {
+    return curve_G2::random_element();
 }
 
-extern "C" bool libsnarkwrap_G2_is_zero(alt_bn128_G2 *p) {
+extern "C" bool libsnarkwrap_G2_is_zero(curve_G2 *p) {
     return p->is_zero();
 }
 
-extern "C" bool libsnarkwrap_G2_is_equal(alt_bn128_G2 *p, alt_bn128_G2 *q) {
+extern "C" bool libsnarkwrap_G2_is_equal(curve_G2 *p, curve_G2 *q) {
     return *p == *q;
 }
 
-extern "C" alt_bn128_G2 libsnarkwrap_G2_add(alt_bn128_G2 *p, alt_bn128_G2 *q) {
+extern "C" curve_G2 libsnarkwrap_G2_add(curve_G2 *p, curve_G2 *q) {
     return *p + *q;
 }
 
-extern "C" alt_bn128_G2 libsnarkwrap_G2_sub(alt_bn128_G2 *p, alt_bn128_G2 *q) {
+extern "C" curve_G2 libsnarkwrap_G2_sub(curve_G2 *p, curve_G2 *q) {
     return *p - *q;
 }
 
-extern "C" alt_bn128_G2 libsnarkwrap_G2_neg(alt_bn128_G2 *p) {
+extern "C" curve_G2 libsnarkwrap_G2_neg(curve_G2 *p) {
     return -(*p);
 }
 
-extern "C" alt_bn128_G2 libsnarkwrap_G2_scalarmul(alt_bn128_G2 *p, FieldT *q) {
+extern "C" curve_G2 libsnarkwrap_G2_scalarmul(curve_G2 *p, curve_Fr *q) {
     return (*q) * (*p);
 }
 
 // Pairing
 
-extern "C" alt_bn128_GT libsnarkwrap_gt_exp(alt_bn128_GT *p, FieldT *s) {
+extern "C" curve_GT libsnarkwrap_gt_exp(curve_GT *p, curve_Fr *s) {
     return (*p) ^ (*s);
 }
 
-extern "C" alt_bn128_GT libsnarkwrap_pairing(alt_bn128_G1 *p, alt_bn128_G2 *q) {
-    return alt_bn128_reduced_pairing(*p, *q);
+extern "C" curve_GT libsnarkwrap_pairing(curve_G1 *p, curve_G2 *q) {
+    return curve_pp::reduced_pairing(*p, *q);
 }
