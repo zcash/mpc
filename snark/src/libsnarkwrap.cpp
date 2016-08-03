@@ -21,6 +21,20 @@ extern "C" void libsnarkwrap_init() {
     libsnark::inhibit_profiling_counters = true;
     assert(sodium_init() != -1);
     curve_pp::init_public_params();
+
+    // Rust wrappers assume these sizes
+    assert(sizeof(curve_Fr) == 8 * (4));
+    assert(sizeof(curve_G1) == 8 * (4 * 3));
+    assert(sizeof(curve_G2) == 8 * (4 * 2 * 3));
+    assert(sizeof(curve_GT) == 8 * (4 * 6 * 2));
+
+    // Rust wrappers assume alignment.
+    // This will trip up enabling ate-pairing until
+    // the wrappers are changed.
+    assert(alignof(curve_Fr) == alignof(uint64_t));
+    assert(alignof(curve_G1) == alignof(uint64_t));
+    assert(alignof(curve_G2) == alignof(uint64_t));
+    assert(alignof(curve_GT) == alignof(uint64_t));
 }
 
 // Fr
