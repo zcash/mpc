@@ -18,6 +18,8 @@ pub use self::g2::G2;
 extern "C" {
     fn libsnarkwrap_init();
     fn libsnarkwrap_pairing(p: *const G1, q: *const G2) -> Gt;
+    fn libsnarkwrap_getqap(d: *mut libc::uint32_t, omega: *mut Fr);
+    fn libsnarkwrap_test_compare_tau(i: *const G1, tau: *const Fr, d: libc::uint32_t) -> bool;
 }
 
 lazy_static! {
@@ -32,6 +34,22 @@ pub fn initialize() {
         unsafe { libsnarkwrap_init(); }
         *l = true;
     }
+}
+
+/// Get the QAP info for the generation routines
+pub fn getqap() -> (usize, Fr) {
+    let mut d = 0;
+    let mut o = Fr::zero();
+
+    unsafe { libsnarkwrap_getqap(&mut d, &mut o); }
+
+    (d as usize, o)
+}
+
+/// Check that the lagrange coefficients computed by tau over
+/// G1 equal the expected vector.
+pub fn compare_tau(v: &[G1], tau: &Fr) -> bool {
+    unsafe { libsnarkwrap_test_compare_tau(&v[0], tau, v.len() as u32) }
 }
 
 pub trait Pairing<Other: Group> {

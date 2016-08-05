@@ -1,5 +1,5 @@
 use snark::*;
-use util::Sequences;
+use util::*;
 
 struct Spair<G: Group> {
     p: G,
@@ -78,27 +78,6 @@ fn checkseq<'a,
 where Group1: Pairing<Group2>
 {
     check(Sequences::new(i), a)
-}
-
-struct TauPowers {
-    acc: Fr,
-    tau: Fr
-}
-
-impl TauPowers {
-    fn new(tau: Fr) -> TauPowers {
-        TauPowers { acc: Fr::one(), tau: tau }
-    }
-}
-
-impl Iterator for TauPowers {
-    type Item = Fr;
-
-    fn next(&mut self) -> Option<Fr> {
-        let tmp = self.acc;
-        self.acc = tmp * self.tau;
-        Some(tmp)
-    }
 }
 
 #[test]

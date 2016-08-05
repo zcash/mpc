@@ -6,6 +6,7 @@
 #include "algebra/curves/public_params.hpp"
 #include "relations/arithmetic_programs/qap/qap.hpp"
 #include "reductions/r1cs_to_qap/r1cs_to_qap.hpp"
+#include "relations/constraint_satisfaction_problems/r1cs/examples/r1cs_examples.hpp"
 
 using namespace std;
 using namespace libsnark;
@@ -167,4 +168,58 @@ extern "C" curve_GT libsnarkwrap_gt_exp(const curve_GT *p, const curve_Fr *s) {
 
 extern "C" curve_GT libsnarkwrap_pairing(const curve_G1 *p, const curve_G2 *q) {
     return curve_pp::reduced_pairing(*p, *q);
+}
+
+// QAP
+
+qap_instance<curve_Fr> get_qap(
+    std::shared_ptr<basic_radix2_domain<curve_Fr>> &domain
+)
+{
+    // Generate a dummy circuit
+    auto example = generate_r1cs_example_with_field_input<curve_Fr>(250, 4);
+
+    // A/B swap
+    example.constraint_system.swap_AB_if_beneficial();
+
+    // QAP reduction
+    auto qap = r1cs_to_qap_instance_map(example.constraint_system);
+
+    // Degree of the QAP must be a power of 2
+    assert(qap.degree() == 256);
+
+    // Assume radix2 evaluation domain
+    domain = std::static_pointer_cast<basic_radix2_domain<curve_Fr>>(qap.domain);
+
+    return qap;
+}
+
+extern "C" void libsnarkwrap_getqap(uint32_t *d, curve_Fr *omega)
+{
+    std::shared_ptr<basic_radix2_domain<curve_Fr>> domain;
+    auto qap = get_qap(domain);
+
+    *omega = domain->omega;
+    *d = qap.degree();
+}
+
+extern "C" bool libsnarkwrap_test_compare_tau(
+    const curve_G1 *inputs,
+    const curve_Fr *tau,
+    uint32_t d
+)
+{
+    std::shared_ptr<basic_radix2_domain<curve_Fr>> domain;
+    auto qap = get_qap(domain);
+
+    auto coeffs = domain->lagrange_coeffs(*tau);
+    assert(coeffs.size() == d);
+    assert(qap.degree() == d);
+
+    bool res = true;
+    for (size_t i = 0; i < d; i++) {
+        res &= (coeffs[i] * curve_G1::one()) == inputs[i];
+    }
+
+    return res;
 }
