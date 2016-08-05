@@ -172,7 +172,7 @@ extern "C" curve_GT libsnarkwrap_pairing(const curve_G1 *p, const curve_G2 *q) {
 
 // QAP
 
-qap_instance<curve_Fr> get_qap()
+extern "C" void* libsnarkwrap_getcs(uint32_t *d, curve_Fr *omega)
 {
     // Generate a dummy circuit
     auto example = generate_r1cs_example_with_field_input<curve_Fr>(250, 4);
@@ -180,41 +180,38 @@ qap_instance<curve_Fr> get_qap()
     // A/B swap
     example.constraint_system.swap_AB_if_beneficial();
 
-    // QAP reduction
-    auto qap = r1cs_to_qap_instance_map(example.constraint_system);
+    {
+        // QAP reduction
+        auto qap = r1cs_to_qap_instance_map(example.constraint_system);
 
-    // Degree of the QAP must be a power of 2
-    assert(qap.degree() == 256);
+        // Degree of the QAP must be a power of 2
+        assert(qap.degree() == 256);
+        
+        // Assume radix2 evaluation domain
+        *omega = std::static_pointer_cast<basic_radix2_domain<curve_Fr>>(qap.domain)->omega;
 
-    return qap;
+        *d = qap.degree();
+    }
+    
+    return new r1cs_constraint_system<curve_Fr>(example.constraint_system);
 }
 
-extern "C" void* libsnarkwrap_getqap(uint32_t *d, curve_Fr *omega)
+extern "C" void libsnarkwrap_dropcs(r1cs_constraint_system<curve_Fr> *cs)
 {
-    auto qap = new qap_instance<curve_Fr>(get_qap());
-    
-    // Assume radix2 evaluation domain
-    *omega = std::static_pointer_cast<basic_radix2_domain<curve_Fr>>(qap->domain)->omega;
-    *d = qap->degree();
-    
-    return qap;
-}
-
-extern "C" void libsnarkwrap_dropqap(qap_instance<curve_Fr> *qap)
-{
-    delete qap;
+    delete cs;
 }
 
 extern "C" bool libsnarkwrap_test_compare_tau(
     const curve_G1 *inputs,
     const curve_Fr *tau,
     uint32_t d,
-    const qap_instance<curve_Fr> *qap
+    const r1cs_constraint_system<curve_Fr> *cs
 )
 {
-    auto coeffs = qap->domain->lagrange_coeffs(*tau);
+    auto qap = r1cs_to_qap_instance_map(*cs);
+    auto coeffs = qap.domain->lagrange_coeffs(*tau);
     assert(coeffs.size() == d);
-    assert(qap->degree() == d);
+    assert(qap.degree() == d);
 
     bool res = true;
     for (size_t i = 0; i < d; i++) {

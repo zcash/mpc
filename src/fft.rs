@@ -46,7 +46,7 @@ mod test {
         initialize();
 
         // Get the QAP degree and omega (for FFT evaluation)
-        let (d, omega, qap) = getqap();
+        let (d, omega, cs) = getqap();
 
         // Sample a random tau
         let tau = Fr::random();
@@ -62,9 +62,9 @@ mod test {
                     .collect::<Vec<_>>();
 
         // Compare against libsnark
-        assert!(compare_tau(&lc, &tau, &qap));
+        assert!(compare_tau(&lc, &tau, &cs));
 
         // Wrong tau
-        assert!(!compare_tau(&lc, &Fr::random(), &qap));
+        assert!(!compare_tau(&lc, &Fr::random(), &cs));
     }
 }
