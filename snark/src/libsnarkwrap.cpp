@@ -172,9 +172,7 @@ extern "C" curve_GT libsnarkwrap_pairing(const curve_G1 *p, const curve_G2 *q) {
 
 // QAP
 
-qap_instance<curve_Fr> get_qap(
-    std::shared_ptr<basic_radix2_domain<curve_Fr>> &domain
-)
+qap_instance<curve_Fr> get_qap()
 {
     // Generate a dummy circuit
     auto example = generate_r1cs_example_with_field_input<curve_Fr>(250, 4);
@@ -188,33 +186,35 @@ qap_instance<curve_Fr> get_qap(
     // Degree of the QAP must be a power of 2
     assert(qap.degree() == 256);
 
-    // Assume radix2 evaluation domain
-    domain = std::static_pointer_cast<basic_radix2_domain<curve_Fr>>(qap.domain);
-
     return qap;
 }
 
-extern "C" void libsnarkwrap_getqap(uint32_t *d, curve_Fr *omega)
+extern "C" void* libsnarkwrap_getqap(uint32_t *d, curve_Fr *omega)
 {
-    std::shared_ptr<basic_radix2_domain<curve_Fr>> domain;
-    auto qap = get_qap(domain);
+    auto qap = new qap_instance<curve_Fr>(get_qap());
+    
+    // Assume radix2 evaluation domain
+    *omega = std::static_pointer_cast<basic_radix2_domain<curve_Fr>>(qap->domain)->omega;
+    *d = qap->degree();
+    
+    return qap;
+}
 
-    *omega = domain->omega;
-    *d = qap.degree();
+extern "C" void libsnarkwrap_dropqap(qap_instance<curve_Fr> *qap)
+{
+    delete qap;
 }
 
 extern "C" bool libsnarkwrap_test_compare_tau(
     const curve_G1 *inputs,
     const curve_Fr *tau,
-    uint32_t d
+    uint32_t d,
+    const qap_instance<curve_Fr> *qap
 )
 {
-    std::shared_ptr<basic_radix2_domain<curve_Fr>> domain;
-    auto qap = get_qap(domain);
-
-    auto coeffs = domain->lagrange_coeffs(*tau);
+    auto coeffs = qap->domain->lagrange_coeffs(*tau);
     assert(coeffs.size() == d);
-    assert(qap.degree() == d);
+    assert(qap->degree() == d);
 
     bool res = true;
     for (size_t i = 0; i < d; i++) {
