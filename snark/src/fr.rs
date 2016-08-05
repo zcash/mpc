@@ -17,6 +17,7 @@ extern "C" {
     fn libsnarkwrap_Fr_mul(a: *const Fr, b: *const Fr) -> Fr;
     fn libsnarkwrap_Fr_sub(a: *const Fr, b: *const Fr) -> Fr;
     fn libsnarkwrap_Fr_neg(a: *const Fr) -> Fr;
+    fn libsnarkwrap_Fr_inverse(a: *const Fr) -> Fr;
     fn libsnarkwrap_Fr_is_zero(a: *const Fr) -> bool;
 }
 
@@ -31,6 +32,10 @@ impl Fr {
 
     pub fn random() -> Self {
         unsafe { libsnarkwrap_Fr_random() }
+    }
+
+    pub fn inverse(&self) -> Self {
+        unsafe { libsnarkwrap_Fr_inverse(self) }
     }
 
     pub fn is_zero(&self) -> bool {
@@ -102,6 +107,19 @@ impl Neg for Fr {
 
     fn neg(self) -> Fr {
         unsafe { libsnarkwrap_Fr_neg(&self) }
+    }
+}
+
+#[test]
+fn test_inverses() {
+    super::initialize();
+
+    for _ in 0..50 {
+        let a = Fr::random();
+        assert!(a != Fr::zero());
+        let b = a.inverse();
+
+        assert!(a * b == Fr::one());
     }
 }
 

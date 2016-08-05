@@ -75,6 +75,10 @@ extern "C" curve_Fr libsnarkwrap_Fr_neg(const curve_Fr *a) {
     return -(*a);
 }
 
+extern "C" curve_Fr libsnarkwrap_Fr_inverse(const curve_Fr *a) {
+    return a->inverse();
+}
+
 extern "C" bool libsnarkwrap_Fr_is_zero(const curve_Fr *a) {
     return a->is_zero();
 }
