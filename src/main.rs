@@ -1,6 +1,5 @@
 extern crate snark;
 
-mod randompowers;
 mod util;
 mod fft;
 mod protocol;

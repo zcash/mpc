@@ -60,16 +60,6 @@ where Group1: Pairing<Group2>
     same_power(&Spair::new(&p, &q), &a)
 }
 
-fn checkvec<'a,
-            Group1: Group,
-            Group2: Group,
-            I: IntoIterator<Item=&'a Spair<Group1>>>
-            (i: I, a: &Spair<Group2>) -> bool
-where Group1: Pairing<Group2>
-{
-    check(i.into_iter().map(|s| (&s.p, &s.q)), a)
-}
-
 pub fn checkseq<'a,
             Group1: Group,
             Group2: Group,
@@ -81,48 +71,17 @@ where Group1: Pairing<Group2>
 }
 
 #[test]
-fn randompowers_simulation() {
+fn trivial_samepower() {
     initialize();
 
-    let parties = 3;
-    let d = 1024;
+    let f = Fr::random();
+    let a = Spair::<G1>::random(&f);
+    let b = Spair::<G2>::random(&f);
+    let c = Spair::<G1>::random(&Fr::random());
 
-    let mut messages: Vec<(Spair<G2>, Vec<G1>, Vec<G2>)> = vec![];
-    messages.reserve(parties);
-
-    for i in 0..parties {
-        let tau = Fr::random_nonzero();
-        let rp = Spair::random(&tau);
-
-        if i == 0 {
-            messages.push((
-                rp,
-                TauPowers::new(tau).map(|p| G1::one() * p).take(d).collect(),
-                TauPowers::new(tau).map(|p| G2::one() * p).take(d).collect()
-            ));
-        } else {
-            let v1 = messages[i-1].1.iter().zip(TauPowers::new(tau)).map(|(b, p)| *b * p).collect();
-            let v2 = messages[i-1].2.iter().zip(TauPowers::new(tau)).map(|(b, p)| *b * p).collect();
-
-            messages.push((
-                rp,
-                v1,
-                v2
-            ));
-        }
-    }
-
-    // Check validity
-    for i in 0..parties {
-        if i == 0 {
-            assert!(checkseq(messages[i].1.iter(), &messages[i].0));
-            assert!(checkseq(messages[i].2.iter(), &Spair::new(&messages[i].1[0], &messages[i].1[1])));
-        } else {
-            assert!(checkseq(messages[i].1.iter(), &Spair::new(&messages[i].2[0], &messages[i].2[1])));
-            assert!(checkseq(messages[i].2.iter(), &Spair::new(&messages[i].1[0], &messages[i].1[1])));
-            assert!(same_power(&Spair::new(&messages[i-1].1[1], &messages[i].1[1]), &messages[i].0));
-        }
-    }
+    assert!(same_power(&a, &b));
+    assert!(same_power(&b, &a));
+    assert!(!same_power(&b, &c));
 }
 
 #[test]
@@ -171,6 +130,18 @@ fn samepower_seq() {
 
     general_seq_test::<G1, G2>();
     general_seq_test::<G2, G1>();
+}
+
+
+/*
+fn checkvec<'a,
+            Group1: Group,
+            Group2: Group,
+            I: IntoIterator<Item=&'a Spair<Group1>>>
+            (i: I, a: &Spair<Group2>) -> bool
+where Group1: Pairing<Group2>
+{
+    check(i.into_iter().map(|s| (&s.p, &s.q)), a)
 }
 
 #[test]
@@ -227,17 +198,4 @@ fn samepower_vec() {
     samepower_test_each_group(10, 5);
     samepower_test_each_group(100, 50);
 }
-
-#[test]
-fn trivial_samepower() {
-    initialize();
-
-    let f = Fr::random();
-    let a = Spair::<G1>::random(&f);
-    let b = Spair::<G2>::random(&f);
-    let c = Spair::<G1>::random(&Fr::random());
-
-    assert!(same_power(&a, &b));
-    assert!(same_power(&b, &a));
-    assert!(!same_power(&b, &c));
-}
+*/

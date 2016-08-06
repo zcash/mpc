@@ -1,5 +1,8 @@
 use snark::*;
-use randompowers::*;
+use util::*;
+
+mod spair;
+use self::spair::*;
 
 #[derive(Debug)]
 pub enum ProtocolError {
@@ -66,12 +69,9 @@ impl Player {
         let mut t1 = Vec::with_capacity(self.d+1);
         let mut t2 = Vec::with_capacity(self.d+1);
 
-        let mut tp = Fr::one();
-        for i in 0..self.d+1 {
+        for (i, tp) in TauPowers::new(self.secrets.tau).take(self.d+1).enumerate() {
             t1.push(v1[i] * tp);
             t2.push(v2[i] * tp);
-
-            tp = tp * self.secrets.tau;
         }
 
         Ok((t1, t2))
