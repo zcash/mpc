@@ -125,9 +125,25 @@ fn randompowers_test() {
     }
 
     // Verification
+    let mut last = None;
     for i in 0..NUM_PARTIES {
+        // Wrong tau s-pair should fail
+        assert!(!verify_randompowers(&transcript[i],
+                                    last,
+                                    &spairs[(i+1)%NUM_PARTIES].tau));
+
+        if last.is_some() {
+            // Verifying against wrong last transcript should fail
+            assert!(!verify_randompowers(&transcript[i],
+                                         Some(&transcript[i]),
+                                         &spairs[i].tau));
+        }
+
+        // Correct check
         assert!(verify_randompowers(&transcript[i],
-                                    if i == 0 { None } else { Some(&transcript[i-1]) },
+                                    last,
                                     &spairs[i].tau));
+
+        last = Some(&transcript[i]);
     }
 }
