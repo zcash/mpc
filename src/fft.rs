@@ -1,6 +1,16 @@
 use snark::{Group, Fr};
 
-pub fn fft<G: Group>(v: &[G], omega: Fr) -> Vec<G>
+pub fn lagrange_coeffs<G: Group>(v: &[G], omega: Fr, d: usize) -> Vec<G>
+{
+    let overd = Fr::from_str(&format!("{}", d)).inverse();
+    fft(v, omega)
+        .into_iter()
+        .rev() // coefficients are in reverse
+        .map(|e| e * overd) // divide by d
+        .collect::<Vec<_>>()
+}
+
+fn fft<G: Group>(v: &[G], omega: Fr) -> Vec<G>
 {
     if v.len() == 2 {
         vec![
@@ -37,7 +47,7 @@ pub fn fft<G: Group>(v: &[G], omega: Fr) -> Vec<G>
 
 #[cfg(test)]
 mod test {
-    use super::fft;
+    use super::lagrange_coeffs;
     use snark::*;
     use util::*;
 
@@ -53,25 +63,30 @@ mod test {
 
         // Generate powers of tau in G1, from 0 to d exclusive of d
         let powers_of_tau_g1 = TauPowers::new(tau).take(d).map(|e| G1::one() * e).collect::<Vec<_>>();
+        // Generate powers of tau in G2, from 0 to d exclusive of d
         let powers_of_tau_g2 = TauPowers::new(tau).take(d).map(|e| G2::one() * e).collect::<Vec<_>>();
 
+        // Perform FFT to compute lagrange coeffs in G1/G2
         let overd = Fr::from_str(&format!("{}", d)).inverse();
-        let lc1 = fft(&powers_of_tau_g1, omega) // omit tau^d
-                     .into_iter()
-                     .rev() // coefficients are in reverse
-                     .map(|e| e * overd) // divide by d
-                     .collect::<Vec<_>>();
-        let lc2 = fft(&powers_of_tau_g2, omega) // omit tau^d
-                     .into_iter()
-                     .rev() // coefficients are in reverse
-                     .map(|e| e * overd) // divide by d
-                     .collect::<Vec<_>>();
+        let lc1 = lagrange_coeffs(&powers_of_tau_g1, omega, d);
+        let lc2 = lagrange_coeffs(&powers_of_tau_g2, omega, d);
+
+        {
+            // Perform G1 FFT with wrong omega
+            let lc1 = lagrange_coeffs(&powers_of_tau_g1, Fr::random(), d);
+            assert!(!compare_tau(&lc1, &lc2, &tau, &cs));
+        }
+        {
+            // Perform G2 FFT with wrong omega
+            let lc2 = lagrange_coeffs(&powers_of_tau_g2, Fr::random(), d);
+            assert!(!compare_tau(&lc1, &lc2, &tau, &cs));
+        }
 
         // Compare against libsnark
-        assert!(compare_tau(&lc1, &tau, &cs));
+        assert!(compare_tau(&lc1, &lc2, &tau, &cs));
 
         // Wrong tau
-        assert!(!compare_tau(&lc1, &Fr::random(), &cs));
+        assert!(!compare_tau(&lc1, &lc2, &Fr::random(), &cs));
 
         // Evaluate At, Ct in G1 and Bt in G1/G2
         let mut At = (0..num_vars).map(|_| G1::zero()).collect::<Vec<_>>();

@@ -39,7 +39,8 @@ extern "C" {
         Bt2: *const G2,
         Ct: *const G1) -> bool;
     fn libsnarkwrap_test_compare_tau(
-        i: *const G1,
+        i1: *const G1,
+        i2: *const G2,
         tau: *const Fr,
         d: libc::uint64_t,
         qap: *const libc::c_void) -> bool;
@@ -123,8 +124,9 @@ pub fn getqap() -> (usize, usize, Fr, CS) {
 
 /// Check that the lagrange coefficients computed by tau over
 /// G1 equal the expected vector.
-pub fn compare_tau(v: &[G1], tau: &Fr, cs: &CS) -> bool {
-    unsafe { libsnarkwrap_test_compare_tau(&v[0], tau, v.len() as u64, cs.0) }
+pub fn compare_tau(v1: &[G1], v2: &[G2], tau: &Fr, cs: &CS) -> bool {
+    assert_eq!(v1.len(), v2.len());
+    unsafe { libsnarkwrap_test_compare_tau(&v1[0], &v2[0], tau, v1.len() as u64, cs.0) }
 }
 
 pub trait Pairing<Other: Group> {

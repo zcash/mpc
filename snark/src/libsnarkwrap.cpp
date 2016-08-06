@@ -208,7 +208,8 @@ extern "C" void libsnarkwrap_dropcs(r1cs_constraint_system<curve_Fr> *cs)
 }
 
 extern "C" bool libsnarkwrap_test_compare_tau(
-    const curve_G1 *inputs,
+    const curve_G1 *inputs1,
+    const curve_G2 *inputs2,
     const curve_Fr *tau,
     uint64_t d,
     const r1cs_constraint_system<curve_Fr> *cs
@@ -221,7 +222,8 @@ extern "C" bool libsnarkwrap_test_compare_tau(
 
     bool res = true;
     for (size_t i = 0; i < d; i++) {
-        res &= (coeffs[i] * curve_G1::one()) == inputs[i];
+        res &= (coeffs[i] * curve_G1::one()) == inputs1[i];
+        res &= (coeffs[i] * curve_G2::one()) == inputs2[i];
     }
 
     return res;
