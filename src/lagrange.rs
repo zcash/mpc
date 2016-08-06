@@ -1,16 +1,16 @@
 use snark::{Group, Fr};
 use crossbeam;
 
-pub fn lagrange_coeffs<G: Group>(v: &[G], omega: Fr, d: usize) -> Vec<G>
+pub fn lagrange_coeffs<G: Group>(v: &[G], omega: Fr) -> Vec<G>
 {
     const THREADS: usize = 8;
 
-    let overd = Fr::from_str(&format!("{}", d)).inverse();
+    let overd = Fr::from_str(&format!("{}", v.len())).inverse();
     let mut tmp = fft(v, omega, THREADS);
     tmp.reverse(); // coefficients are in reverse
 
     crossbeam::scope(|scope| {
-        for i in tmp.chunks_mut(d / THREADS) {
+        for i in tmp.chunks_mut(v.len() / THREADS) {
             scope.spawn(move || {
                 for i in i {
                     *i = *i * overd;
@@ -96,18 +96,17 @@ mod test {
         let powers_of_tau_g2 = TauPowers::new(tau).take(d).map(|e| G2::one() * e).collect::<Vec<_>>();
 
         // Perform FFT to compute lagrange coeffs in G1/G2
-        let overd = Fr::from_str(&format!("{}", d)).inverse();
-        let lc1 = lagrange_coeffs(&powers_of_tau_g1, omega, d);
-        let lc2 = lagrange_coeffs(&powers_of_tau_g2, omega, d);
+        let lc1 = lagrange_coeffs(&powers_of_tau_g1, omega);
+        let lc2 = lagrange_coeffs(&powers_of_tau_g2, omega);
 
         {
             // Perform G1 FFT with wrong omega
-            let lc1 = lagrange_coeffs(&powers_of_tau_g1, Fr::random(), d);
+            let lc1 = lagrange_coeffs(&powers_of_tau_g1, Fr::random());
             assert!(!compare_tau(&lc1, &lc2, &tau, &cs));
         }
         {
             // Perform G2 FFT with wrong omega
-            let lc2 = lagrange_coeffs(&powers_of_tau_g2, Fr::random(), d);
+            let lc2 = lagrange_coeffs(&powers_of_tau_g2, Fr::random());
             assert!(!compare_tau(&lc1, &lc2, &tau, &cs));
         }
 
