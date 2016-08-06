@@ -56,7 +56,7 @@ extern "C" curve_Fr libsnarkwrap_Fr_from(const char *a) {
     return curve_Fr(a);
 }
 
-extern "C" curve_Fr libsnarkwrap_Fr_exp(const curve_Fr *a, uint32_t b) {
+extern "C" curve_Fr libsnarkwrap_Fr_exp(const curve_Fr *a, uint64_t b) {
     return (*a) ^ b;
 }
 
@@ -172,7 +172,7 @@ extern "C" curve_GT libsnarkwrap_pairing(const curve_G1 *p, const curve_G2 *q) {
 
 // QAP
 
-extern "C" void* libsnarkwrap_getcs(uint32_t *d, uint32_t *vars, curve_Fr *omega)
+extern "C" void* libsnarkwrap_getcs(uint64_t *d, uint64_t *vars, curve_Fr *omega)
 {
     // Generate a dummy circuit
     auto example = generate_r1cs_example_with_field_input<curve_Fr>(250, 4);
@@ -210,7 +210,7 @@ extern "C" void libsnarkwrap_dropcs(r1cs_constraint_system<curve_Fr> *cs)
 extern "C" bool libsnarkwrap_test_compare_tau(
     const curve_G1 *inputs,
     const curve_Fr *tau,
-    uint32_t d,
+    uint64_t d,
     const r1cs_constraint_system<curve_Fr> *cs
 )
 {
@@ -230,8 +230,8 @@ extern "C" bool libsnarkwrap_test_compare_tau(
 extern "C" void libsnarkwrap_eval(
     const r1cs_constraint_system<curve_Fr> *cs,
     const curve_G1 *lc,
-    uint32_t d,
-    uint32_t vars,
+    uint64_t d,
+    uint64_t vars,
     curve_G1 *At,
     curve_G1 *Bt,
     curve_G1 *Ct
@@ -264,7 +264,7 @@ extern "C" void libsnarkwrap_eval(
 extern "C" bool libsnarkwrap_test_eval(
     const r1cs_constraint_system<curve_Fr> *cs,
     const curve_Fr *tau,
-    uint32_t vars,
+    uint64_t vars,
     const curve_G1 *At,
     const curve_G1 *Bt,
     const curve_G1 *Ct

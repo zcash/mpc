@@ -1,5 +1,5 @@
 use std::ops::{Add,Sub,Mul,Neg};
-use libc::c_char;
+use libc::{c_char,uint64_t};
 use std::ffi::CString;
 
 /// The scalar field for the curve construction we use.
@@ -12,7 +12,7 @@ extern "C" {
     fn libsnarkwrap_Fr_zero() -> Fr;
     fn libsnarkwrap_Fr_one() -> Fr;
     fn libsnarkwrap_Fr_from(s: *const c_char) -> Fr;
-    fn libsnarkwrap_Fr_exp(a: *const Fr, b: u32) -> Fr;
+    fn libsnarkwrap_Fr_exp(a: *const Fr, b: uint64_t) -> Fr;
     fn libsnarkwrap_Fr_add(a: *const Fr, b: *const Fr) -> Fr;
     fn libsnarkwrap_Fr_mul(a: *const Fr, b: *const Fr) -> Fr;
     fn libsnarkwrap_Fr_sub(a: *const Fr, b: *const Fr) -> Fr;
@@ -42,7 +42,7 @@ impl Fr {
         unsafe { libsnarkwrap_Fr_is_zero(self) }
     }
 
-    pub fn exp(&self, e: u32) -> Self {
+    pub fn exp(&self, e: u64) -> Self {
         unsafe { libsnarkwrap_Fr_exp(self, e) }
     }
 

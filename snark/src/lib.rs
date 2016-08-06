@@ -18,27 +18,27 @@ pub use self::g2::G2;
 extern "C" {
     fn libsnarkwrap_init();
     fn libsnarkwrap_pairing(p: *const G1, q: *const G2) -> Gt;
-    fn libsnarkwrap_getcs(d: *mut libc::uint32_t, vars: *mut libc::uint32_t, omega: *mut Fr) -> *mut libc::c_void;
+    fn libsnarkwrap_getcs(d: *mut libc::uint64_t, vars: *mut libc::uint64_t, omega: *mut Fr) -> *mut libc::c_void;
     fn libsnarkwrap_dropcs(cs: *mut libc::c_void);
     fn libsnarkwrap_eval(
         cs: *const libc::c_void,
         lc: *const G1,
-        d: libc::uint32_t,
-        vars: libc::uint32_t,
+        d: libc::uint64_t,
+        vars: libc::uint64_t,
         At: *mut G1,
         Bt: *mut G1,
         Ct: *mut G1);
     fn libsnarkwrap_test_eval(
         cs: *const libc::c_void,
         tau: *const Fr,
-        vars: libc::uint32_t,
+        vars: libc::uint64_t,
         At: *const G1,
         Bt: *const G1,
         Ct: *const G1) -> bool;
     fn libsnarkwrap_test_compare_tau(
         i: *const G1,
         tau: *const Fr,
-        d: libc::uint32_t,
+        d: libc::uint64_t,
         qap: *const libc::c_void) -> bool;
 }
 
@@ -66,7 +66,7 @@ impl CS {
         unsafe {
             libsnarkwrap_test_eval(self.0,
                                    tau,
-                                   At.len() as u32,
+                                   At.len() as u64,
                                    &At[0],
                                    &Bt[0],
                                    &Ct[0])
@@ -84,8 +84,8 @@ impl CS {
         unsafe {
             libsnarkwrap_eval(self.0,
                               &Lt[0],
-                              Lt.len() as u32,
-                              At.len() as u32,
+                              Lt.len() as u64,
+                              At.len() as u64,
                               &mut At[0],
                               &mut Bt[0],
                               &mut Ct[0]);
@@ -113,7 +113,7 @@ pub fn getqap() -> (usize, usize, Fr, CS) {
 /// Check that the lagrange coefficients computed by tau over
 /// G1 equal the expected vector.
 pub fn compare_tau(v: &[G1], tau: &Fr, cs: &CS) -> bool {
-    unsafe { libsnarkwrap_test_compare_tau(&v[0], tau, v.len() as u32, cs.0) }
+    unsafe { libsnarkwrap_test_compare_tau(&v[0], tau, v.len() as u64, cs.0) }
 }
 
 pub trait Pairing<Other: Group> {
