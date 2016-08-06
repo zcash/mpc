@@ -1,7 +1,7 @@
 extern crate snark;
 
 mod util;
-mod fft;
+mod lagrange;
 mod protocol;
 mod spair;
 
