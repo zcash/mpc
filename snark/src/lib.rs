@@ -156,7 +156,7 @@ pub fn pairing<Ga: Group, Gb: Group>(p: &Ga, q: &Gb) -> Gt where Ga: Pairing<Gb>
     unsafe { libsnarkwrap_pairing(p.g1(q), p.g2(q)) }
 }
 
-pub trait Group: Sized +
+pub trait Group: Sized + Send +
                         Copy +
                         Clone +
                         Mul<Fr, Output=Self> +

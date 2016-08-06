@@ -11,3 +11,4 @@ readme = "README.md"
 
 [dependencies]
 snark = { path = "./snark/" }
+crossbeam = "0.2.9"

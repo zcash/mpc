@@ -1,4 +1,5 @@
 extern crate snark;
+extern crate crossbeam;
 
 mod util;
 mod lagrange;

@@ -1,16 +1,28 @@
 use snark::{Group, Fr};
+use crossbeam;
 
 pub fn lagrange_coeffs<G: Group>(v: &[G], omega: Fr, d: usize) -> Vec<G>
 {
+    const THREADS: usize = 8;
+
     let overd = Fr::from_str(&format!("{}", d)).inverse();
-    fft(v, omega)
-        .into_iter()
-        .rev() // coefficients are in reverse
-        .map(|e| e * overd) // divide by d
-        .collect::<Vec<_>>()
+    let mut tmp = fft(v, omega, THREADS);
+    tmp.reverse(); // coefficients are in reverse
+
+    crossbeam::scope(|scope| {
+        for i in tmp.chunks_mut(d / THREADS) {
+            scope.spawn(move || {
+                for i in i {
+                    *i = *i * overd;
+                }
+            });
+        }
+    });
+
+    tmp
 }
 
-fn fft<G: Group>(v: &[G], omega: Fr) -> Vec<G>
+fn fft<G: Group>(v: &[G], omega: Fr, threads: usize) -> Vec<G>
 {
     if v.len() == 2 {
         vec![
@@ -31,8 +43,25 @@ fn fft<G: Group>(v: &[G], omega: Fr) -> Vec<G>
         }
 
         let o2 = omega * omega;
-        let evens = fft(&evens, o2);
-        let odds = fft(&odds, o2);
+        let (evens, odds) = if threads < 2 {
+            (fft(&evens, o2, 1), fft(&odds, o2, 1))
+        } else {
+            use std::sync::mpsc::channel;
+            use std::thread;
+
+            let (tx_evens, rx_evens) = channel();
+            let (tx_odds, rx_odds) = channel();
+
+            thread::spawn(move || {
+                tx_evens.send(fft(&evens, o2, threads/2)).unwrap();
+            });
+
+            thread::spawn(move || {
+                tx_odds.send(fft(&odds, o2, threads/2)).unwrap();
+            });
+
+            (rx_evens.recv().unwrap(), rx_odds.recv().unwrap())
+        };
 
         let mut acc = omega;
         let mut res = Vec::with_capacity(v.len());
