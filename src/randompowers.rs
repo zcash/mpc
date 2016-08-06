@@ -1,13 +1,13 @@
 use snark::*;
 use util::*;
 
-struct Spair<G: Group> {
+pub struct Spair<G: Group> {
     p: G,
     q: G
 }
 
 impl<G: Group> Spair<G> {
-    fn random(s: &Fr) -> Self {
+    pub fn random(s: &Fr) -> Self {
         let mut p = G::zero();
 
         while p.is_zero() {
@@ -20,7 +20,7 @@ impl<G: Group> Spair<G> {
         }
     }
 
-    fn new(p: &G, q: &G) -> Self {
+    pub fn new(p: &G, q: &G) -> Self {
         if p.is_zero() {
             panic!("tried to initialize spair with zero base")
         }
@@ -32,7 +32,7 @@ impl<G: Group> Spair<G> {
     }
 }
 
-fn same_power<Group1: Group, Group2: Group>(a: &Spair<Group1>, b: &Spair<Group2>) -> bool
+pub fn same_power<Group1: Group, Group2: Group>(a: &Spair<Group1>, b: &Spair<Group2>) -> bool
 where Group1: Pairing<Group2> {
     pairing(&a.p, &b.q) == pairing(&a.q, &b.p)
 }
@@ -70,7 +70,7 @@ where Group1: Pairing<Group2>
     check(i.into_iter().map(|s| (&s.p, &s.q)), a)
 }
 
-fn checkseq<'a,
+pub fn checkseq<'a,
             Group1: Group,
             Group2: Group,
             I: Iterator<Item=&'a Group1>>
