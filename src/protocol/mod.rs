@@ -1,8 +1,6 @@
 use snark::*;
 use util::*;
-
-mod spair;
-use self::spair::*;
+use spair::*;
 
 #[derive(Debug)]
 pub enum ProtocolError {
