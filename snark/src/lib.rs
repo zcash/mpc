@@ -18,8 +18,23 @@ pub use self::g2::G2;
 extern "C" {
     fn libsnarkwrap_init();
     fn libsnarkwrap_pairing(p: *const G1, q: *const G2) -> Gt;
-    fn libsnarkwrap_getcs(d: *mut libc::uint32_t, omega: *mut Fr) -> *mut libc::c_void;
+    fn libsnarkwrap_getcs(d: *mut libc::uint32_t, vars: *mut libc::uint32_t, omega: *mut Fr) -> *mut libc::c_void;
     fn libsnarkwrap_dropcs(cs: *mut libc::c_void);
+    fn libsnarkwrap_eval(
+        cs: *const libc::c_void,
+        lc: *const G1,
+        d: libc::uint32_t,
+        vars: libc::uint32_t,
+        At: *mut G1,
+        Bt: *mut G1,
+        Ct: *mut G1);
+    fn libsnarkwrap_test_eval(
+        cs: *const libc::c_void,
+        tau: *const Fr,
+        vars: libc::uint32_t,
+        At: *const G1,
+        Bt: *const G1,
+        Ct: *const G1) -> bool;
     fn libsnarkwrap_test_compare_tau(
         i: *const G1,
         tau: *const Fr,
@@ -43,6 +58,41 @@ pub fn initialize() {
 
 pub struct CS(*mut libc::c_void);
 
+impl CS {
+    pub fn test_eval(&self, tau: &Fr, At: &[G1], Bt: &[G1], Ct: &[G1]) -> bool {
+        assert_eq!(At.len(), Bt.len());
+        assert_eq!(Bt.len(), Ct.len());
+
+        unsafe {
+            libsnarkwrap_test_eval(self.0,
+                                   tau,
+                                   At.len() as u32,
+                                   &At[0],
+                                   &Bt[0],
+                                   &Ct[0])
+        }
+    }
+
+    pub fn eval(&self,
+                Lt: &[G1],
+                At: &mut [G1],
+                Bt: &mut [G1],
+                Ct: &mut [G1]) {
+        assert_eq!(At.len(), Bt.len());
+        assert_eq!(Bt.len(), Ct.len());
+
+        unsafe {
+            libsnarkwrap_eval(self.0,
+                              &Lt[0],
+                              Lt.len() as u32,
+                              At.len() as u32,
+                              &mut At[0],
+                              &mut Bt[0],
+                              &mut Ct[0]);
+        }
+    }
+}
+
 impl Drop for CS {
     fn drop(&mut self) {
         unsafe { libsnarkwrap_dropcs(self.0) }
@@ -50,13 +100,14 @@ impl Drop for CS {
 }
 
 /// Get the QAP info for the generation routines
-pub fn getqap() -> (usize, Fr, CS) {
+pub fn getqap() -> (usize, usize, Fr, CS) {
     let mut d = 0;
+    let mut vars = 0;
     let mut o = Fr::zero();
 
-    let cs = unsafe { libsnarkwrap_getcs(&mut d, &mut o) };
+    let cs = unsafe { libsnarkwrap_getcs(&mut d, &mut vars, &mut o) };
 
-    (d as usize, o, CS(cs))
+    (d as usize, vars as usize, o, CS(cs))
 }
 
 /// Check that the lagrange coefficients computed by tau over

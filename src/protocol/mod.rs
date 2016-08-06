@@ -21,13 +21,14 @@ pub struct Samples<T> {
 pub struct Player {
     secrets: Samples<Fr>,
     pub d: usize,
+    pub num_vars: usize,
     omega: Fr,
     cs: CS
 }
 
 impl Player {
     pub fn new() -> Player {
-        let (d, omega, cs) = getqap();
+        let (d, num_vars, omega, cs) = getqap();
 
         Player {
             secrets: Samples {
@@ -41,6 +42,7 @@ impl Player {
                 gamma: Fr::random_nonzero()
             },
             d: d,
+            num_vars: num_vars,
             omega: omega,
             cs: cs
         }

@@ -46,7 +46,7 @@ mod test {
         initialize();
 
         // Get the QAP degree and omega (for FFT evaluation)
-        let (d, omega, cs) = getqap();
+        let (d, num_vars, omega, cs) = getqap();
 
         // Sample a random tau
         let tau = Fr::random();
@@ -66,5 +66,18 @@ mod test {
 
         // Wrong tau
         assert!(!compare_tau(&lc, &Fr::random(), &cs));
+
+        // Evaluate At, Bt, Ct in G1
+        let mut At = (0..num_vars).map(|_| G1::zero()).collect::<Vec<_>>();
+        let mut Bt = (0..num_vars).map(|_| G1::zero()).collect::<Vec<_>>();
+        let mut Ct = (0..num_vars).map(|_| G1::zero()).collect::<Vec<_>>();
+
+        cs.eval(&lc, &mut At, &mut Bt, &mut Ct);
+
+        // Compare evaluation with libsnark
+        assert!(cs.test_eval(&tau, &At, &Bt, &Ct));
+
+        // Wrong tau
+        assert!(!cs.test_eval(&Fr::random(), &At, &Bt, &Ct));
     }
 }

@@ -172,7 +172,7 @@ extern "C" curve_GT libsnarkwrap_pairing(const curve_G1 *p, const curve_G2 *q) {
 
 // QAP
 
-extern "C" void* libsnarkwrap_getcs(uint32_t *d, curve_Fr *omega)
+extern "C" void* libsnarkwrap_getcs(uint32_t *d, uint32_t *vars, curve_Fr *omega)
 {
     // Generate a dummy circuit
     auto example = generate_r1cs_example_with_field_input<curve_Fr>(250, 4);
@@ -184,6 +184,11 @@ extern "C" void* libsnarkwrap_getcs(uint32_t *d, curve_Fr *omega)
         // QAP reduction
         auto qap = r1cs_to_qap_instance_map(example.constraint_system);
 
+        // Sanity checks
+        assert(qap.A_in_Lagrange_basis.size() == example.constraint_system.num_variables()+1);
+        assert(qap.B_in_Lagrange_basis.size() == example.constraint_system.num_variables()+1);
+        assert(qap.C_in_Lagrange_basis.size() == example.constraint_system.num_variables()+1);
+
         // Degree of the QAP must be a power of 2
         assert(qap.degree() == 256);
         
@@ -191,6 +196,7 @@ extern "C" void* libsnarkwrap_getcs(uint32_t *d, curve_Fr *omega)
         *omega = std::static_pointer_cast<basic_radix2_domain<curve_Fr>>(qap.domain)->omega;
 
         *d = qap.degree();
+        *vars = example.constraint_system.num_variables()+1;
     }
     
     return new r1cs_constraint_system<curve_Fr>(example.constraint_system);
@@ -216,6 +222,70 @@ extern "C" bool libsnarkwrap_test_compare_tau(
     bool res = true;
     for (size_t i = 0; i < d; i++) {
         res &= (coeffs[i] * curve_G1::one()) == inputs[i];
+    }
+
+    return res;
+}
+
+extern "C" void libsnarkwrap_eval(
+    const r1cs_constraint_system<curve_Fr> *cs,
+    const curve_G1 *lc,
+    uint32_t d,
+    uint32_t vars,
+    curve_G1 *At,
+    curve_G1 *Bt,
+    curve_G1 *Ct
+)
+{
+    auto qap = r1cs_to_qap_instance_map(*cs);
+    assert(qap.degree() == d);
+    assert(qap.A_in_Lagrange_basis.size() == vars);
+    assert(qap.B_in_Lagrange_basis.size() == vars);
+    assert(qap.C_in_Lagrange_basis.size() == vars);
+
+    for (size_t i = 0; i < vars; i++) {
+        for (auto const &it : qap.A_in_Lagrange_basis[i]) {
+            assert(it.first < d);
+            At[i] = At[i] + it.second * lc[it.first];
+        }
+
+        for (auto const &it : qap.B_in_Lagrange_basis[i]) {
+            assert(it.first < d);
+            Bt[i] = Bt[i] + it.second * lc[it.first];
+        }
+
+        for (auto const &it : qap.C_in_Lagrange_basis[i]) {
+            assert(it.first < d);
+            Ct[i] = Ct[i] + it.second * lc[it.first];
+        }
+    }
+}
+
+extern "C" bool libsnarkwrap_test_eval(
+    const r1cs_constraint_system<curve_Fr> *cs,
+    const curve_Fr *tau,
+    uint32_t vars,
+    const curve_G1 *At,
+    const curve_G1 *Bt,
+    const curve_G1 *Ct
+) {
+    auto qap = r1cs_to_qap_instance_map_with_evaluation(*cs, *tau);
+    assert(qap.At.size() == vars);
+    assert(qap.Bt.size() == vars);
+    assert(qap.Ct.size() == vars);
+
+    bool res = true;
+
+    for (size_t i = 0; i < vars; i++) {
+        res &= (qap.At[i] * curve_G1::one()) == At[i];
+    }
+
+    for (size_t i = 0; i < vars; i++) {
+        res &= (qap.Bt[i] * curve_G1::one()) == Bt[i];
+    }
+
+    for (size_t i = 0; i < vars; i++) {
+        res &= (qap.Ct[i] * curve_G1::one()) == Ct[i];
     }
 
     return res;
