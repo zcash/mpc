@@ -20,16 +20,11 @@ pub struct Samples<T> {
 
 pub struct Player {
     secrets: Samples<Fr>,
-    pub d: usize,
-    pub num_vars: usize,
-    omega: Fr,
     cs: CS
 }
 
 impl Player {
     pub fn new() -> Player {
-        let (d, num_vars, omega, cs) = getqap();
-
         Player {
             secrets: Samples {
                 tau: Fr::random_nonzero(),
@@ -41,10 +36,7 @@ impl Player {
                 beta: Fr::random_nonzero(),
                 gamma: Fr::random_nonzero()
             },
-            d: d,
-            num_vars: num_vars,
-            omega: omega,
-            cs: cs
+            cs: getqap()
         }
     }
 
@@ -62,14 +54,14 @@ impl Player {
     }
 
     pub fn randompowers(&self, v1: &[G1], v2: &[G2]) -> Result<(Vec<G1>, Vec<G2>), ProtocolError> {
-        if (v1.len() != v2.len()) || (v1.len() != self.d+1) {
+        if (v1.len() != v2.len()) || (v1.len() != self.cs.d+1) {
             return Err(ProtocolError::InvalidTauPowersSize)
         }
 
-        let mut t1 = Vec::with_capacity(self.d+1);
-        let mut t2 = Vec::with_capacity(self.d+1);
+        let mut t1 = Vec::with_capacity(self.cs.d+1);
+        let mut t2 = Vec::with_capacity(self.cs.d+1);
 
-        for (i, tp) in TauPowers::new(self.secrets.tau).take(self.d+1).enumerate() {
+        for (i, tp) in TauPowers::new(self.secrets.tau).take(self.cs.d+1).enumerate() {
             t1.push(v1[i] * tp);
             t2.push(v2[i] * tp);
         }
@@ -115,8 +107,8 @@ fn randompowers_test() {
         use std::iter::repeat;
 
         if i == 0 {
-            let v1 = repeat(G1::one()).take(p.d + 1).collect::<Vec<_>>();
-            let v2 = repeat(G2::one()).take(p.d + 1).collect::<Vec<_>>();
+            let v1 = repeat(G1::one()).take(p.cs.d + 1).collect::<Vec<_>>();
+            let v2 = repeat(G2::one()).take(p.cs.d + 1).collect::<Vec<_>>();
             transcript.push(p.randompowers(&v1, &v2).unwrap());
         } else {
             let v = p.randompowers(&transcript[i-1].0, &transcript[i-1].1).unwrap();

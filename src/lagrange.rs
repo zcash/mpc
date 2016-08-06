@@ -85,19 +85,19 @@ mod test {
         initialize();
 
         // Get the QAP degree and omega (for FFT evaluation)
-        let (d, num_vars, omega, cs) = getqap();
+        let cs = getqap();
 
         // Sample a random tau
         let tau = Fr::random();
 
         // Generate powers of tau in G1, from 0 to d exclusive of d
-        let powers_of_tau_g1 = TauPowers::new(tau).take(d).map(|e| G1::one() * e).collect::<Vec<_>>();
+        let powers_of_tau_g1 = TauPowers::new(tau).take(cs.d).map(|e| G1::one() * e).collect::<Vec<_>>();
         // Generate powers of tau in G2, from 0 to d exclusive of d
-        let powers_of_tau_g2 = TauPowers::new(tau).take(d).map(|e| G2::one() * e).collect::<Vec<_>>();
+        let powers_of_tau_g2 = TauPowers::new(tau).take(cs.d).map(|e| G2::one() * e).collect::<Vec<_>>();
 
         // Perform FFT to compute lagrange coeffs in G1/G2
-        let lc1 = lagrange_coeffs(&powers_of_tau_g1, omega);
-        let lc2 = lagrange_coeffs(&powers_of_tau_g2, omega);
+        let lc1 = lagrange_coeffs(&powers_of_tau_g1, cs.omega);
+        let lc2 = lagrange_coeffs(&powers_of_tau_g2, cs.omega);
 
         {
             // Perform G1 FFT with wrong omega
@@ -117,10 +117,10 @@ mod test {
         assert!(!compare_tau(&lc1, &lc2, &Fr::random(), &cs));
 
         // Evaluate At, Ct in G1 and Bt in G1/G2
-        let mut At = (0..num_vars).map(|_| G1::zero()).collect::<Vec<_>>();
-        let mut Bt1 = (0..num_vars).map(|_| G1::zero()).collect::<Vec<_>>();
-        let mut Bt2 = (0..num_vars).map(|_| G2::zero()).collect::<Vec<_>>();
-        let mut Ct = (0..num_vars).map(|_| G1::zero()).collect::<Vec<_>>();
+        let mut At = (0..cs.num_vars).map(|_| G1::zero()).collect::<Vec<_>>();
+        let mut Bt1 = (0..cs.num_vars).map(|_| G1::zero()).collect::<Vec<_>>();
+        let mut Bt2 = (0..cs.num_vars).map(|_| G2::zero()).collect::<Vec<_>>();
+        let mut Ct = (0..cs.num_vars).map(|_| G1::zero()).collect::<Vec<_>>();
 
         cs.eval(&lc1, &lc2, &mut At, &mut Bt1, &mut Bt2, &mut Ct);
 

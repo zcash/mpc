@@ -60,7 +60,12 @@ pub fn initialize() {
     }
 }
 
-pub struct CS(*mut libc::c_void);
+pub struct CS {
+    ptr: *mut libc::c_void,
+    pub d: usize,
+    pub num_vars: usize,
+    pub omega: Fr
+}
 
 impl CS {
     pub fn test_eval(&self, tau: &Fr, At: &[G1], Bt1: &[G1], Bt2: &[G2], Ct: &[G1]) -> bool {
@@ -69,7 +74,7 @@ impl CS {
         assert_eq!(Bt2.len(), Ct.len());
 
         unsafe {
-            libsnarkwrap_test_eval(self.0,
+            libsnarkwrap_test_eval(self.ptr,
                                    tau,
                                    At.len() as u64,
                                    &At[0],
@@ -92,7 +97,7 @@ impl CS {
         assert_eq!(Bt2.len(), Ct.len());
 
         unsafe {
-            libsnarkwrap_eval(self.0,
+            libsnarkwrap_eval(self.ptr,
                               &Lt1[0],
                               &Lt2[0],
                               Lt1.len() as u64,
@@ -107,26 +112,31 @@ impl CS {
 
 impl Drop for CS {
     fn drop(&mut self) {
-        unsafe { libsnarkwrap_dropcs(self.0) }
+        unsafe { libsnarkwrap_dropcs(self.ptr) }
     }
 }
 
 /// Get the QAP info for the generation routines
-pub fn getqap() -> (usize, usize, Fr, CS) {
+pub fn getqap() -> CS {
     let mut d = 0;
     let mut vars = 0;
     let mut o = Fr::zero();
 
     let cs = unsafe { libsnarkwrap_getcs(&mut d, &mut vars, &mut o) };
 
-    (d as usize, vars as usize, o, CS(cs))
+    CS {
+        ptr: cs,
+        num_vars: vars as usize,
+        d: d as usize,
+        omega: o
+    }
 }
 
 /// Check that the lagrange coefficients computed by tau over
 /// G1 equal the expected vector.
 pub fn compare_tau(v1: &[G1], v2: &[G2], tau: &Fr, cs: &CS) -> bool {
     assert_eq!(v1.len(), v2.len());
-    unsafe { libsnarkwrap_test_compare_tau(&v1[0], &v2[0], tau, v1.len() as u64, cs.0) }
+    unsafe { libsnarkwrap_test_compare_tau(&v1[0], &v2[0], tau, v1.len() as u64, cs.ptr) }
 }
 
 pub trait Pairing<Other: Group> {
