@@ -22,18 +22,21 @@ extern "C" {
     fn libsnarkwrap_dropcs(cs: *mut libc::c_void);
     fn libsnarkwrap_eval(
         cs: *const libc::c_void,
-        lc: *const G1,
+        lc1: *const G1,
+        lc2: *const G2,
         d: libc::uint64_t,
         vars: libc::uint64_t,
         At: *mut G1,
-        Bt: *mut G1,
+        Bt1: *mut G1,
+        Bt2: *mut G2,
         Ct: *mut G1);
     fn libsnarkwrap_test_eval(
         cs: *const libc::c_void,
         tau: *const Fr,
         vars: libc::uint64_t,
         At: *const G1,
-        Bt: *const G1,
+        Bt1: *const G1,
+        Bt2: *const G2,
         Ct: *const G1) -> bool;
     fn libsnarkwrap_test_compare_tau(
         i: *const G1,
@@ -59,35 +62,43 @@ pub fn initialize() {
 pub struct CS(*mut libc::c_void);
 
 impl CS {
-    pub fn test_eval(&self, tau: &Fr, At: &[G1], Bt: &[G1], Ct: &[G1]) -> bool {
-        assert_eq!(At.len(), Bt.len());
-        assert_eq!(Bt.len(), Ct.len());
+    pub fn test_eval(&self, tau: &Fr, At: &[G1], Bt1: &[G1], Bt2: &[G2], Ct: &[G1]) -> bool {
+        assert_eq!(At.len(), Bt1.len());
+        assert_eq!(Bt1.len(), Bt2.len());
+        assert_eq!(Bt2.len(), Ct.len());
 
         unsafe {
             libsnarkwrap_test_eval(self.0,
                                    tau,
                                    At.len() as u64,
                                    &At[0],
-                                   &Bt[0],
+                                   &Bt1[0],
+                                   &Bt2[0],
                                    &Ct[0])
         }
     }
 
     pub fn eval(&self,
-                Lt: &[G1],
+                Lt1: &[G1],
+                Lt2: &[G2],
                 At: &mut [G1],
-                Bt: &mut [G1],
+                Bt1: &mut [G1],
+                Bt2: &mut [G2],
                 Ct: &mut [G1]) {
-        assert_eq!(At.len(), Bt.len());
-        assert_eq!(Bt.len(), Ct.len());
+        assert_eq!(Lt1.len(), Lt2.len());
+        assert_eq!(At.len(), Bt1.len());
+        assert_eq!(Bt1.len(), Bt2.len());
+        assert_eq!(Bt2.len(), Ct.len());
 
         unsafe {
             libsnarkwrap_eval(self.0,
-                              &Lt[0],
-                              Lt.len() as u64,
+                              &Lt1[0],
+                              &Lt2[0],
+                              Lt1.len() as u64,
                               At.len() as u64,
                               &mut At[0],
-                              &mut Bt[0],
+                              &mut Bt1[0],
+                              &mut Bt2[0],
                               &mut Ct[0]);
         }
     }

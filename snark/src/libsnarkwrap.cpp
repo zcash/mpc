@@ -229,11 +229,13 @@ extern "C" bool libsnarkwrap_test_compare_tau(
 
 extern "C" void libsnarkwrap_eval(
     const r1cs_constraint_system<curve_Fr> *cs,
-    const curve_G1 *lc,
+    const curve_G1 *lc1,
+    const curve_G2 *lc2,
     uint64_t d,
     uint64_t vars,
     curve_G1 *At,
-    curve_G1 *Bt,
+    curve_G1 *Bt1,
+    curve_G2 *Bt2,
     curve_G1 *Ct
 )
 {
@@ -246,17 +248,18 @@ extern "C" void libsnarkwrap_eval(
     for (size_t i = 0; i < vars; i++) {
         for (auto const &it : qap.A_in_Lagrange_basis[i]) {
             assert(it.first < d);
-            At[i] = At[i] + it.second * lc[it.first];
+            At[i] = At[i] + it.second * lc1[it.first];
         }
 
         for (auto const &it : qap.B_in_Lagrange_basis[i]) {
             assert(it.first < d);
-            Bt[i] = Bt[i] + it.second * lc[it.first];
+            Bt1[i] = Bt1[i] + it.second * lc1[it.first];
+            Bt2[i] = Bt2[i] + it.second * lc2[it.first];
         }
 
         for (auto const &it : qap.C_in_Lagrange_basis[i]) {
             assert(it.first < d);
-            Ct[i] = Ct[i] + it.second * lc[it.first];
+            Ct[i] = Ct[i] + it.second * lc1[it.first];
         }
     }
 }
@@ -266,7 +269,8 @@ extern "C" bool libsnarkwrap_test_eval(
     const curve_Fr *tau,
     uint64_t vars,
     const curve_G1 *At,
-    const curve_G1 *Bt,
+    const curve_G1 *Bt1,
+    const curve_G2 *Bt2,
     const curve_G1 *Ct
 ) {
     auto qap = r1cs_to_qap_instance_map_with_evaluation(*cs, *tau);
@@ -281,7 +285,8 @@ extern "C" bool libsnarkwrap_test_eval(
     }
 
     for (size_t i = 0; i < vars; i++) {
-        res &= (qap.Bt[i] * curve_G1::one()) == Bt[i];
+        res &= (qap.Bt[i] * curve_G1::one()) == Bt1[i];
+        res &= (qap.Bt[i] * curve_G2::one()) == Bt2[i];
     }
 
     for (size_t i = 0; i < vars; i++) {

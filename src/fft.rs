@@ -52,32 +52,42 @@ mod test {
         let tau = Fr::random();
 
         // Generate powers of tau in G1, from 0 to d exclusive of d
-        let powers_of_tau = TauPowers::new(tau).take(d).map(|e| G1::one() * e).collect::<Vec<_>>();
+        let powers_of_tau_g1 = TauPowers::new(tau).take(d).map(|e| G1::one() * e).collect::<Vec<_>>();
+        let powers_of_tau_g2 = TauPowers::new(tau).take(d).map(|e| G2::one() * e).collect::<Vec<_>>();
 
         let overd = Fr::from_str(&format!("{}", d)).inverse();
-        let lc = fft(&powers_of_tau, omega) // omit tau^d
-                    .into_iter()
-                    .rev() // coefficients are in reverse
-                    .map(|e| e * overd) // divide by d
-                    .collect::<Vec<_>>();
+        let lc1 = fft(&powers_of_tau_g1, omega) // omit tau^d
+                     .into_iter()
+                     .rev() // coefficients are in reverse
+                     .map(|e| e * overd) // divide by d
+                     .collect::<Vec<_>>();
+        let lc2 = fft(&powers_of_tau_g2, omega) // omit tau^d
+                     .into_iter()
+                     .rev() // coefficients are in reverse
+                     .map(|e| e * overd) // divide by d
+                     .collect::<Vec<_>>();
 
         // Compare against libsnark
-        assert!(compare_tau(&lc, &tau, &cs));
+        assert!(compare_tau(&lc1, &tau, &cs));
 
         // Wrong tau
-        assert!(!compare_tau(&lc, &Fr::random(), &cs));
+        assert!(!compare_tau(&lc1, &Fr::random(), &cs));
 
-        // Evaluate At, Bt, Ct in G1
+        // Evaluate At, Ct in G1 and Bt in G1/G2
         let mut At = (0..num_vars).map(|_| G1::zero()).collect::<Vec<_>>();
-        let mut Bt = (0..num_vars).map(|_| G1::zero()).collect::<Vec<_>>();
+        let mut Bt1 = (0..num_vars).map(|_| G1::zero()).collect::<Vec<_>>();
+        let mut Bt2 = (0..num_vars).map(|_| G2::zero()).collect::<Vec<_>>();
         let mut Ct = (0..num_vars).map(|_| G1::zero()).collect::<Vec<_>>();
 
-        cs.eval(&lc, &mut At, &mut Bt, &mut Ct);
+        cs.eval(&lc1, &lc2, &mut At, &mut Bt1, &mut Bt2, &mut Ct);
 
         // Compare evaluation with libsnark
-        assert!(cs.test_eval(&tau, &At, &Bt, &Ct));
+        assert!(cs.test_eval(&tau, &At, &Bt1, &Bt2, &Ct));
 
         // Wrong tau
-        assert!(!cs.test_eval(&Fr::random(), &At, &Bt, &Ct));
+        assert!(!cs.test_eval(&Fr::random(), &At, &Bt1, &Bt2, &Ct));
+
+        // Wrong polynomials
+        assert!(!cs.test_eval(&Fr::random(), &Bt1, &Bt1, &Bt2, &Ct));
     }
 }
