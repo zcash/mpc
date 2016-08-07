@@ -3,6 +3,7 @@ use crossbeam;
 
 pub fn lagrange_coeffs<G: Group>(v: &[G], omega: Fr) -> Vec<G>
 {
+    assert_eq!((v.len() / 2) * 2, v.len());
     const THREADS: usize = 8;
 
     let overd = Fr::from_str(&format!("{}", v.len())).inverse();
@@ -85,7 +86,7 @@ mod test {
         initialize();
 
         // Get the QAP degree and omega (for FFT evaluation)
-        let cs = getqap();
+        let cs = getcs();
 
         // Sample a random tau
         let tau = Fr::random();

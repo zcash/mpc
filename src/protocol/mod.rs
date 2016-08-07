@@ -1,5 +1,6 @@
 use snark::*;
 use util::*;
+use lagrange::*;
 use spair::*;
 
 #[derive(Debug)]
@@ -18,13 +19,13 @@ pub struct Samples<T> {
     gamma: T
 }
 
-pub struct Player {
+pub struct Player<'a> {
     secrets: Samples<Fr>,
-    cs: CS
+    cs: &'a CS
 }
 
-impl Player {
-    pub fn new() -> Player {
+impl<'a> Player<'a> {
+    pub fn new(cs: &'a CS) -> Player {
         Player {
             secrets: Samples {
                 tau: Fr::random_nonzero(),
@@ -36,7 +37,7 @@ impl Player {
                 beta: Fr::random_nonzero(),
                 gamma: Fr::random_nonzero()
             },
-            cs: getqap()
+            cs: cs
         }
     }
 
@@ -53,13 +54,22 @@ impl Player {
         }
     }
 
+    pub fn randompowers_start(&self) -> Result<(Vec<G1>, Vec<G2>), ProtocolError> {
+        use std::iter::repeat;
+
+        let v1 = repeat(G1::one()).take(self.cs.d + 1).collect::<Vec<_>>();
+        let v2 = repeat(G2::one()).take(self.cs.d + 1).collect::<Vec<_>>();
+
+        self.randompowers(&v1, &v2)
+    }
+
     pub fn randompowers(&self, v1: &[G1], v2: &[G2]) -> Result<(Vec<G1>, Vec<G2>), ProtocolError> {
-        if (v1.len() != v2.len()) || (v1.len() != self.cs.d+1) {
+        if (v1.len() != v2.len()) || (v1.len() != self.cs.d + 1) {
             return Err(ProtocolError::InvalidTauPowersSize)
         }
 
-        let mut t1 = Vec::with_capacity(self.cs.d+1);
-        let mut t2 = Vec::with_capacity(self.cs.d+1);
+        let mut t1 = Vec::with_capacity(self.cs.d + 1);
+        let mut t2 = Vec::with_capacity(self.cs.d + 1);
 
         for (i, tp) in TauPowers::new(self.secrets.tau).take(self.cs.d+1).enumerate() {
             t1.push(v1[i] * tp);
@@ -73,7 +83,7 @@ impl Player {
 pub fn verify_randompowers(
     current: &(Vec<G1>, Vec<G2>),
     last: Option<&(Vec<G1>, Vec<G2>)>,
-    rp: &Spair<G2>
+    spair: &Samples<Spair<G2>>
 ) -> bool {
     current.0[0] == G1::one() &&
     current.1[0] == G2::one() &&
@@ -81,10 +91,10 @@ pub fn verify_randompowers(
         Some(last) => {
             checkseq(current.0.iter(), &Spair::new(&current.1[0], &current.1[1])) &&
             checkseq(current.1.iter(), &Spair::new(&current.0[0], &current.0[1])) &&
-            same_power(&Spair::new(&last.0[1], &current.0[1]), rp)
+            same_power(&Spair::new(&last.0[1], &current.0[1]), &spair.tau)
         },
         None => {
-            checkseq(current.0.iter(), rp) &&
+            checkseq(current.0.iter(), &spair.tau) &&
             checkseq(current.1.iter(), &Spair::new(&current.0[0], &current.0[1]))
         }
     }
@@ -96,20 +106,18 @@ fn randompowers_test() {
 
     const NUM_PARTIES: usize = 3;
 
+    let cs = getcs();
+
     // All parties should initialize with their secret randomness
-    let parties: Vec<Player> = (0..NUM_PARTIES).map(|_| Player::new()).collect();
+    let parties: Vec<Player> = (0..NUM_PARTIES).map(|_| Player::new(&cs)).collect();
     // All parties should reveal their s-pairs
     let spairs: Vec<Samples<Spair<G2>>> = parties.iter().map(|p| p.spairs()).collect();
     
     let mut transcript = vec![];
 
     for (i, p) in parties.iter().enumerate() {
-        use std::iter::repeat;
-
         if i == 0 {
-            let v1 = repeat(G1::one()).take(p.cs.d + 1).collect::<Vec<_>>();
-            let v2 = repeat(G2::one()).take(p.cs.d + 1).collect::<Vec<_>>();
-            transcript.push(p.randompowers(&v1, &v2).unwrap());
+            transcript.push(p.randompowers_start().unwrap());
         } else {
             let v = p.randompowers(&transcript[i-1].0, &transcript[i-1].1).unwrap();
             transcript.push(v);
@@ -122,19 +130,19 @@ fn randompowers_test() {
         // Wrong tau s-pair should fail
         assert!(!verify_randompowers(&transcript[i],
                                     last,
-                                    &spairs[(i+1)%NUM_PARTIES].tau));
+                                    &spairs[(i+1)%NUM_PARTIES]));
 
         if last.is_some() {
             // Verifying against wrong last transcript should fail
             assert!(!verify_randompowers(&transcript[i],
                                          Some(&transcript[i]),
-                                         &spairs[i].tau));
+                                         &spairs[i]));
         }
 
         // Correct check
         assert!(verify_randompowers(&transcript[i],
                                     last,
-                                    &spairs[i].tau));
+                                    &spairs[i]));
 
         last = Some(&transcript[i]);
     }

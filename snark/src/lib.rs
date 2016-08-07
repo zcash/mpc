@@ -117,7 +117,7 @@ impl Drop for CS {
 }
 
 /// Get the QAP info for the generation routines
-pub fn getqap() -> CS {
+pub fn getcs() -> CS {
     let mut d = 0;
     let mut vars = 0;
     let mut o = Fr::zero();
