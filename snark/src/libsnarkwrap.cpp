@@ -30,8 +30,6 @@ extern "C" void libsnarkwrap_init() {
     assert(sizeof(curve_GT) == 8 * (4 * 6 * 2));
 
     // Rust wrappers assume alignment.
-    // This will trip up enabling ate-pairing until
-    // the wrappers are changed.
     assert(alignof(curve_Fr) == alignof(uint64_t));
     assert(alignof(curve_G1) == alignof(uint64_t));
     assert(alignof(curve_G2) == alignof(uint64_t));

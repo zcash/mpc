@@ -1,9 +1,3 @@
 [submodule "snark/libsnark"]
 	path = snark/libsnark
 	url = https://github.com/zcash/libsnark.git
-[submodule "snark/ate-pairing"]
-	path = snark/ate-pairing
-	url = https://github.com/herumi/ate-pairing.git
-[submodule "snark/xbyak"]
-	path = snark/xbyak
-	url = https://github.com/herumi/xbyak.git
