@@ -86,7 +86,7 @@ mod test {
         initialize();
 
         // Get the QAP degree and omega (for FFT evaluation)
-        let cs = getcs();
+        let cs = CS::dummy();
 
         // Sample a random tau
         let tau = Fr::random();

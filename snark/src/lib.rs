@@ -74,6 +74,21 @@ pub struct CS {
 }
 
 impl CS {
+    pub fn dummy() -> Self {
+        let mut d = 0;
+        let mut vars = 0;
+        let mut o = Fr::zero();
+
+        let cs = unsafe { libsnarkwrap_getcs(&mut d, &mut vars, &mut o) };
+
+        CS {
+            ptr: cs,
+            num_vars: vars as usize,
+            d: d as usize,
+            omega: o
+        }
+    }
+
     pub fn test_compare_tau(&self, v1: &[G1], v2: &[G2], tau: &Fr) -> bool {
         assert_eq!(v1.len(), v2.len());
         unsafe { libsnarkwrap_test_compare_tau(&v1[0], &v2[0], tau, v1.len() as u64, self.ptr) }
@@ -124,22 +139,6 @@ impl CS {
 impl Drop for CS {
     fn drop(&mut self) {
         unsafe { libsnarkwrap_dropcs(self.ptr) }
-    }
-}
-
-/// Get the QAP info for the generation routines
-pub fn getcs() -> CS {
-    let mut d = 0;
-    let mut vars = 0;
-    let mut o = Fr::zero();
-
-    let cs = unsafe { libsnarkwrap_getcs(&mut d, &mut vars, &mut o) };
-
-    CS {
-        ptr: cs,
-        num_vars: vars as usize,
-        d: d as usize,
-        omega: o
     }
 }
 
