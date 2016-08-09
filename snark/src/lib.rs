@@ -52,7 +52,13 @@ lazy_static! {
 
 /// This must be called before anything in this module is used.
 pub fn initialize() {
+    use std::mem::align_of;
     let mut l = INIT_LOCK.lock().unwrap();
+
+    assert_eq!(align_of::<Fr>(), align_of::<libc::uint64_t>());
+    assert_eq!(align_of::<G1>(), align_of::<libc::uint64_t>());
+    assert_eq!(align_of::<G2>(), align_of::<libc::uint64_t>());
+    assert_eq!(align_of::<Gt>(), align_of::<libc::uint64_t>());
 
     if !*l {
         unsafe { libsnarkwrap_init(); }
