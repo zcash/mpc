@@ -152,9 +152,10 @@ impl Coordinator {
     fn evaluate_qap(&self, g1_powers: &[G1], g2_powers: &[G2], cs: &CS) -> (Vec<G1>, Vec<G1>, Vec<G2>, Vec<G1>)
     {
         assert_eq!(g1_powers.len(), g2_powers.len());
+        assert_eq!(g2_powers.len(), cs.d+1);
 
-        let lc1 = lagrange_coeffs(&g1_powers[0..g1_powers.len()-1], cs.omega);
-        let lc2 = lagrange_coeffs(&g2_powers[0..g2_powers.len()-1], cs.omega);
+        let lc1 = lagrange_coeffs(&g1_powers[0..cs.d], cs.omega);
+        let lc2 = lagrange_coeffs(&g2_powers[0..cs.d], cs.omega);
 
         let mut at = (0..cs.num_vars).map(|_| G1::zero()).collect::<Vec<_>>();
         let mut bt1 = (0..cs.num_vars).map(|_| G1::zero()).collect::<Vec<_>>();
@@ -164,10 +165,10 @@ impl Coordinator {
         cs.eval(&lc1, &lc2, &mut at, &mut bt1, &mut bt2, &mut ct);
 
         // Push Zt = g^(tau^d - 1) = g^(tau^d) - g
-        at.push(g1_powers[g1_powers.len()-1] - G1::one());
-        bt1.push(g1_powers[g1_powers.len()-1] - G1::one());
-        bt2.push(g2_powers[g2_powers.len()-1] - G2::one());
-        ct.push(g1_powers[g1_powers.len()-1] - G1::one());
+        at.push(g1_powers[cs.d] - G1::one());
+        bt1.push(g1_powers[cs.d] - G1::one());
+        bt2.push(g2_powers[cs.d] - G2::one());
+        ct.push(g1_powers[cs.d] - G1::one());
 
         (at, bt1, bt2, ct)
     }
