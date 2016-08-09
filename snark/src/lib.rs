@@ -26,18 +26,18 @@ extern "C" {
         lc2: *const G2,
         d: libc::uint64_t,
         vars: libc::uint64_t,
-        At: *mut G1,
-        Bt1: *mut G1,
-        Bt2: *mut G2,
-        Ct: *mut G1);
+        at: *mut G1,
+        bt1: *mut G1,
+        bt2: *mut G2,
+        ct: *mut G1);
     fn libsnarkwrap_test_eval(
         cs: *const libc::c_void,
         tau: *const Fr,
         vars: libc::uint64_t,
-        At: *const G1,
-        Bt1: *const G1,
-        Bt2: *const G2,
-        Ct: *const G1) -> bool;
+        at: *const G1,
+        bt1: *const G1,
+        bt2: *const G2,
+        ct: *const G1) -> bool;
     fn libsnarkwrap_test_compare_tau(
         i1: *const G1,
         i2: *const G2,
@@ -68,44 +68,49 @@ pub struct CS {
 }
 
 impl CS {
-    pub fn test_eval(&self, tau: &Fr, At: &[G1], Bt1: &[G1], Bt2: &[G2], Ct: &[G1]) -> bool {
-        assert_eq!(At.len(), Bt1.len());
-        assert_eq!(Bt1.len(), Bt2.len());
-        assert_eq!(Bt2.len(), Ct.len());
+    pub fn test_compare_tau(&self, v1: &[G1], v2: &[G2], tau: &Fr) -> bool {
+        assert_eq!(v1.len(), v2.len());
+        unsafe { libsnarkwrap_test_compare_tau(&v1[0], &v2[0], tau, v1.len() as u64, self.ptr) }
+    }
+
+    pub fn test_eval(&self, tau: &Fr, at: &[G1], bt1: &[G1], bt2: &[G2], ct: &[G1]) -> bool {
+        assert_eq!(at.len(), bt1.len());
+        assert_eq!(bt1.len(), bt2.len());
+        assert_eq!(bt2.len(), ct.len());
 
         unsafe {
             libsnarkwrap_test_eval(self.ptr,
                                    tau,
-                                   At.len() as u64,
-                                   &At[0],
-                                   &Bt1[0],
-                                   &Bt2[0],
-                                   &Ct[0])
+                                   at.len() as u64,
+                                   &at[0],
+                                   &bt1[0],
+                                   &bt2[0],
+                                   &ct[0])
         }
     }
 
     pub fn eval(&self,
-                Lt1: &[G1],
-                Lt2: &[G2],
-                At: &mut [G1],
-                Bt1: &mut [G1],
-                Bt2: &mut [G2],
-                Ct: &mut [G1]) {
-        assert_eq!(Lt1.len(), Lt2.len());
-        assert_eq!(At.len(), Bt1.len());
-        assert_eq!(Bt1.len(), Bt2.len());
-        assert_eq!(Bt2.len(), Ct.len());
+                lt1: &[G1],
+                lt2: &[G2],
+                at: &mut [G1],
+                bt1: &mut [G1],
+                bt2: &mut [G2],
+                ct: &mut [G1]) {
+        assert_eq!(lt1.len(), lt2.len());
+        assert_eq!(at.len(), bt1.len());
+        assert_eq!(bt1.len(), bt2.len());
+        assert_eq!(bt2.len(), ct.len());
 
         unsafe {
             libsnarkwrap_eval(self.ptr,
-                              &Lt1[0],
-                              &Lt2[0],
-                              Lt1.len() as u64,
-                              At.len() as u64,
-                              &mut At[0],
-                              &mut Bt1[0],
-                              &mut Bt2[0],
-                              &mut Ct[0]);
+                              &lt1[0],
+                              &lt2[0],
+                              lt1.len() as u64,
+                              at.len() as u64,
+                              &mut at[0],
+                              &mut bt1[0],
+                              &mut bt2[0],
+                              &mut ct[0]);
         }
     }
 }
@@ -130,13 +135,6 @@ pub fn getcs() -> CS {
         d: d as usize,
         omega: o
     }
-}
-
-/// Check that the lagrange coefficients computed by tau over
-/// G1 equal the expected vector.
-pub fn compare_tau(v1: &[G1], v2: &[G2], tau: &Fr, cs: &CS) -> bool {
-    assert_eq!(v1.len(), v2.len());
-    unsafe { libsnarkwrap_test_compare_tau(&v1[0], &v2[0], tau, v1.len() as u64, cs.ptr) }
 }
 
 pub trait Pairing<Other: Group> {

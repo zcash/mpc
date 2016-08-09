@@ -207,28 +207,6 @@ extern "C" void libsnarkwrap_dropcs(r1cs_constraint_system<curve_Fr> *cs)
     delete cs;
 }
 
-extern "C" bool libsnarkwrap_test_compare_tau(
-    const curve_G1 *inputs1,
-    const curve_G2 *inputs2,
-    const curve_Fr *tau,
-    uint64_t d,
-    const r1cs_constraint_system<curve_Fr> *cs
-)
-{
-    auto qap = r1cs_to_qap_instance_map(*cs);
-    auto coeffs = qap.domain->lagrange_coeffs(*tau);
-    assert(coeffs.size() == d);
-    assert(qap.degree() == d);
-
-    bool res = true;
-    for (size_t i = 0; i < d; i++) {
-        res &= (coeffs[i] * curve_G1::one()) == inputs1[i];
-        res &= (coeffs[i] * curve_G2::one()) == inputs2[i];
-    }
-
-    return res;
-}
-
 extern "C" void libsnarkwrap_eval(
     const r1cs_constraint_system<curve_Fr> *cs,
     const curve_G1 *lc1,
@@ -264,6 +242,30 @@ extern "C" void libsnarkwrap_eval(
             Ct[i] = Ct[i] + it.second * lc1[it.first];
         }
     }
+}
+
+// Comparison tests
+
+extern "C" bool libsnarkwrap_test_compare_tau(
+    const curve_G1 *inputs1,
+    const curve_G2 *inputs2,
+    const curve_Fr *tau,
+    uint64_t d,
+    const r1cs_constraint_system<curve_Fr> *cs
+)
+{
+    auto qap = r1cs_to_qap_instance_map(*cs);
+    auto coeffs = qap.domain->lagrange_coeffs(*tau);
+    assert(coeffs.size() == d);
+    assert(qap.degree() == d);
+
+    bool res = true;
+    for (size_t i = 0; i < d; i++) {
+        res &= (coeffs[i] * curve_G1::one()) == inputs1[i];
+        res &= (coeffs[i] * curve_G2::one()) == inputs2[i];
+    }
+
+    return res;
 }
 
 extern "C" bool libsnarkwrap_test_eval(

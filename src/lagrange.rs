@@ -79,7 +79,7 @@ fn fft<G: Group>(v: &[G], omega: Fr, threads: usize) -> Vec<G>
 mod test {
     use super::lagrange_coeffs;
     use snark::*;
-    use util::*;
+    use taupowers::*;
 
     #[test]
     fn compare_to_libsnark() {
@@ -103,35 +103,35 @@ mod test {
         {
             // Perform G1 FFT with wrong omega
             let lc1 = lagrange_coeffs(&powers_of_tau_g1, Fr::random());
-            assert!(!compare_tau(&lc1, &lc2, &tau, &cs));
+            assert!(!cs.test_compare_tau(&lc1, &lc2, &tau));
         }
         {
             // Perform G2 FFT with wrong omega
             let lc2 = lagrange_coeffs(&powers_of_tau_g2, Fr::random());
-            assert!(!compare_tau(&lc1, &lc2, &tau, &cs));
+            assert!(!cs.test_compare_tau(&lc1, &lc2, &tau));
         }
 
         // Compare against libsnark
-        assert!(compare_tau(&lc1, &lc2, &tau, &cs));
+        assert!(cs.test_compare_tau(&lc1, &lc2, &tau));
 
         // Wrong tau
-        assert!(!compare_tau(&lc1, &lc2, &Fr::random(), &cs));
+        assert!(!cs.test_compare_tau(&lc1, &lc2, &Fr::random()));
 
         // Evaluate At, Ct in G1 and Bt in G1/G2
-        let mut At = (0..cs.num_vars).map(|_| G1::zero()).collect::<Vec<_>>();
-        let mut Bt1 = (0..cs.num_vars).map(|_| G1::zero()).collect::<Vec<_>>();
-        let mut Bt2 = (0..cs.num_vars).map(|_| G2::zero()).collect::<Vec<_>>();
-        let mut Ct = (0..cs.num_vars).map(|_| G1::zero()).collect::<Vec<_>>();
+        let mut at = (0..cs.num_vars).map(|_| G1::zero()).collect::<Vec<_>>();
+        let mut bt1 = (0..cs.num_vars).map(|_| G1::zero()).collect::<Vec<_>>();
+        let mut bt2 = (0..cs.num_vars).map(|_| G2::zero()).collect::<Vec<_>>();
+        let mut ct = (0..cs.num_vars).map(|_| G1::zero()).collect::<Vec<_>>();
 
-        cs.eval(&lc1, &lc2, &mut At, &mut Bt1, &mut Bt2, &mut Ct);
+        cs.eval(&lc1, &lc2, &mut at, &mut bt1, &mut bt2, &mut ct);
 
         // Compare evaluation with libsnark
-        assert!(cs.test_eval(&tau, &At, &Bt1, &Bt2, &Ct));
+        assert!(cs.test_eval(&tau, &at, &bt1, &bt2, &ct));
 
         // Wrong tau
-        assert!(!cs.test_eval(&Fr::random(), &At, &Bt1, &Bt2, &Ct));
+        assert!(!cs.test_eval(&Fr::random(), &at, &bt1, &bt2, &ct));
 
         // Wrong polynomials
-        assert!(!cs.test_eval(&Fr::random(), &Bt1, &Bt1, &Bt2, &Ct));
+        assert!(!cs.test_eval(&Fr::random(), &bt1, &bt1, &bt2, &ct));
     }
 }

@@ -1,5 +1,3 @@
-use snark::Fr;
-
 pub struct Sequences<'a, T: 'a, I: Iterator<Item=&'a T>> {
     v: I,
     last: Option<&'a T>
@@ -35,27 +33,4 @@ fn test_sequences() {
     let b: Vec<(&usize, &usize)> = Sequences::new(a.iter()).collect();
     let expected = vec![(&a[0], &a[1]), (&a[1], &a[2]), (&a[2], &a[3])];
     assert_eq!(b, expected);
-}
-
-
-
-pub struct TauPowers {
-    acc: Fr,
-    tau: Fr
-}
-
-impl TauPowers {
-    pub fn new(tau: Fr) -> TauPowers {
-        TauPowers { acc: Fr::one(), tau: tau }
-    }
-}
-
-impl Iterator for TauPowers {
-    type Item = Fr;
-
-    fn next(&mut self) -> Option<Fr> {
-        let tmp = self.acc;
-        self.acc = tmp * self.tau;
-        Some(tmp)
-    }
 }

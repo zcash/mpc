@@ -1,5 +1,5 @@
 use snark::*;
-use util::*;
+use sequences::*;
 
 pub struct Spair<G: Group> {
     p: G,
@@ -8,7 +8,7 @@ pub struct Spair<G: Group> {
 
 impl<G: Group> Spair<G> {
     pub fn random(s: &Fr) -> Self {
-        let mut p = G::zero();
+        let mut p = G::random();
 
         while p.is_zero() {
             p = G::random();
@@ -20,14 +20,14 @@ impl<G: Group> Spair<G> {
         }
     }
 
-    pub fn new(p: &G, q: &G) -> Self {
+    pub fn new(p: &G, q: &G) -> Option<Self> {
         if p.is_zero() {
-            panic!("tried to initialize spair with zero base")
-        }
-
-        Spair {
-            p: *p,
-            q: *q
+            None
+        } else {
+            Some(Spair {
+                p: *p,
+                q: *q
+            })
         }
     }
 }
@@ -57,7 +57,7 @@ where Group1: Pairing<Group2>
 
     if p.is_zero() { return false; }
 
-    same_power(&Spair::new(&p, &q), &a)
+    same_power(&Spair::new(&p, &q).unwrap(), &a)
 }
 
 pub fn checkseq<'a,
@@ -132,8 +132,6 @@ fn samepower_seq() {
     general_seq_test::<G2, G1>();
 }
 
-
-/*
 fn checkvec<'a,
             Group1: Group,
             Group2: Group,
@@ -198,4 +196,3 @@ fn samepower_vec() {
     samepower_test_each_group(10, 5);
     samepower_test_each_group(100, 50);
 }
-*/
