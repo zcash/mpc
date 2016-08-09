@@ -2,6 +2,7 @@ use snark::*;
 use spair::*;
 use taupowers::*;
 use lagrange::*;
+use std::collections::HashMap;
 
 #[derive(Clone)]
 struct Info<T> {
@@ -96,12 +97,12 @@ impl Player {
 
 struct Coordinator {
     commitments: Vec<BlakeHash>,
-    spairs: Vec<Option<Spairs>>
+    spairs: HashMap<usize, Spairs>
 }
 
 impl Coordinator {
     fn new() -> Self {
-        Coordinator { commitments: vec![], spairs: vec![] }
+        Coordinator { commitments: vec![], spairs: HashMap::new() }
     }
 
     fn receive_commitment(&mut self, h: BlakeHash)
@@ -109,16 +110,11 @@ impl Coordinator {
         self.commitments.push(h);
     }
 
-    fn check_commitment(&mut self, i: usize, spairs: Option<Spairs>) -> bool
+    fn check_commitment(&mut self, i: usize, spairs: Spairs) -> bool
     {
-        self.spairs.push(spairs.clone());
+        self.spairs.insert(i, spairs.clone());
 
-        match spairs {
-            Some(spairs) => {
-                blake2s(&spairs) == self.commitments[i]
-            },
-            None => false
-        }
+        blake2s(&spairs) == self.commitments[i]
     }
 
     fn check_taupowers(
@@ -142,7 +138,7 @@ impl Coordinator {
         prev_g2[1] != G2::zero() &&
         cur_g2[1] != G2::zero() &&
         // Check that we've exponentiated on top of the previous one correctly
-        same_power(&Spair::new(&prev_g1[1], &cur_g1[1]).unwrap(), &self.spairs[player].as_ref().unwrap().tau) &&
+        same_power(&Spair::new(&prev_g1[1], &cur_g1[1]).unwrap(), &self.spairs[&player].tau) &&
         // Check that all G1 elements are exponentiated correctly
         checkseq(cur_g1.iter(), &Spair::new(&cur_g2[0], &cur_g2[1]).unwrap()) &&
         // Check that all G2 elements are exponentiated correctly
@@ -206,7 +202,7 @@ fn implthing() {
     for (i, player) in players.iter().enumerate() {
         match *player {
             Some(ref player) => {
-                assert!(coordinator.check_commitment(i, Some(player.spairs.clone())));
+                assert!(coordinator.check_commitment(i, player.spairs.clone()));
 
                 let (new_g1, new_g2) = player.exponentiate_with_tau(
                     &powers_of_tau_g1, &powers_of_tau_g2
@@ -219,7 +215,6 @@ fn implthing() {
             },
             None => {
                 // Player aborted before this round.
-                coordinator.check_commitment(i, None);
             }
         }
     }
