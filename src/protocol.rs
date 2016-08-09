@@ -109,7 +109,7 @@ impl Coordinator {
         self.commitments.push(h);
     }
 
-    fn reveal_commitment(&mut self, i: usize, spairs: Option<Spairs>) -> bool
+    fn check_commitment(&mut self, i: usize, spairs: Option<Spairs>) -> bool
     {
         self.spairs.push(spairs.clone());
 
@@ -121,7 +121,7 @@ impl Coordinator {
         }
     }
 
-    fn verify_taupowers(
+    fn check_taupowers(
         &self,
         prev_g1: &[G1],
         prev_g2: &[G2],
@@ -206,20 +206,20 @@ fn implthing() {
     for (i, player) in players.iter().enumerate() {
         match *player {
             Some(ref player) => {
-                assert!(coordinator.reveal_commitment(i, Some(player.spairs.clone())));
+                assert!(coordinator.check_commitment(i, Some(player.spairs.clone())));
 
                 let (new_g1, new_g2) = player.exponentiate_with_tau(
                     &powers_of_tau_g1, &powers_of_tau_g2
                 );
 
-                assert!(coordinator.verify_taupowers(&powers_of_tau_g1, &powers_of_tau_g2, &new_g1, &new_g2, i));
+                assert!(coordinator.check_taupowers(&powers_of_tau_g1, &powers_of_tau_g2, &new_g1, &new_g2, i));
 
                 powers_of_tau_g1 = new_g1;
                 powers_of_tau_g2 = new_g2;
             },
             None => {
                 // Player aborted before this round.
-                coordinator.reveal_commitment(i, None);
+                coordinator.check_commitment(i, None);
             }
         }
     }
