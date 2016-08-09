@@ -93,6 +93,15 @@ impl Player {
 
         (new_g1, new_g2)
     }
+
+    fn random_coeffs_part_one(
+        &self,
+        pk_A: &[G1]) -> Vec<G1>
+    {
+        pk_A.iter().map(|a| {
+            *a * self.secrets.rho_a
+        }).collect()
+    }
 }
 
 struct Coordinator {
@@ -219,10 +228,31 @@ fn implthing() {
         }
     }
 
+    // Simulate another participant leaving the protocol
+    players[6] = None;
+
     // Phase 3: Remote computation
     // The coordinator performs an FFT and evaluates the QAP,
     // also performing Z extention.
     let (at, bt1, bt2, ct) = coordinator.evaluate_qap(&powers_of_tau_g1, &powers_of_tau_g2, &cs);
+
+
+    // Phase 4: Random Coefficients, part I
+    // Compute PK_A
+    let mut pk_A = at.clone();
+    
+    for (i, player) in players.iter().enumerate() {
+        match *player {
+            Some(ref player) => {
+                let new_pk_A = player.random_coeffs_part_one(&pk_A);
+            },
+            None => {
+                // Player aborted before this round.
+            }
+        }
+    }    
+
+
 
 
 }
