@@ -22,7 +22,7 @@ impl<G: Group> Spair<G> {
     }
 
     pub fn new(p: &G, q: &G) -> Option<Self> {
-        if p.is_zero() {
+        if p.is_zero() || q.is_zero() {
             None
         } else {
             Some(Spair {
@@ -56,7 +56,7 @@ where Group1: Pairing<Group2>
         q = q + *v.1 * alpha;
     }
 
-    if p.is_zero() { return false; }
+    if p.is_zero() || q.is_zero() { return false; }
 
     same_power(&Spair::new(&p, &q).unwrap(), &a)
 }
