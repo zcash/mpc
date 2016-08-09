@@ -1,6 +1,7 @@
 use snark::*;
 use sequences::*;
 
+#[derive(Clone)]
 pub struct Spair<G: Group> {
     p: G,
     q: G
