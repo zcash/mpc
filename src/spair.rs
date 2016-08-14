@@ -9,11 +9,7 @@ pub struct Spair<G: Group> {
 
 impl<G: Group> Spair<G> {
     pub fn random(s: &Fr) -> Self {
-        let mut p = G::random();
-
-        while p.is_zero() {
-            p = G::random();
-        }
+        let p = G::random_nonzero();
 
         Spair {
             p: p,
@@ -40,7 +36,7 @@ where Group1: Pairing<Group2> {
 
 /// This performs a check to see if a large number of (p,q) pairs in G
 /// have the same power, with only one pairing.
-fn check<'a,
+pub fn check<'a,
          Group1: Group,
          Group2: Group,
          I: IntoIterator<Item=(&'a Group1, &'a Group1)>>
@@ -131,69 +127,4 @@ fn samepower_seq() {
 
     general_seq_test::<G1, G2>();
     general_seq_test::<G2, G1>();
-}
-
-fn checkvec<'a,
-            Group1: Group,
-            Group2: Group,
-            I: IntoIterator<Item=&'a Spair<Group1>>>
-            (i: I, a: &Spair<Group2>) -> bool
-where Group1: Pairing<Group2>
-{
-    check(i.into_iter().map(|s| (&s.p, &s.q)), a)
-}
-
-#[test]
-fn samepower_vec() {
-    initialize();
-
-    fn samepower_general_test<Group1: Group, Group2: Group>(i: usize, f: usize)
-    where Group1: Pairing<Group2>
-    {
-        // Test working
-        {
-            let s = Fr::random();
-            let p = Spair::<Group2>::random(&s);
-
-            let a: Vec<Spair<Group1>> = (0..i).map(|_| Spair::random(&s)).collect();
-
-            assert!(checkvec(&a, &p));
-        }
-
-        // Test different scalar
-        {
-            let s = Fr::random();
-            let p = Spair::<Group2>::random(&Fr::random());
-
-            let a: Vec<Spair<Group1>> = (0..i).map(|_| Spair::random(&s)).collect();
-
-            assert!(!checkvec(&a, &p));
-        }
-
-        // Test incorrect spair
-        {
-            let s = Fr::random();
-            let p = Spair::<Group2>::random(&s);
-
-            let a: Vec<Spair<Group1>> = (0..i).map(|i| {
-                if i == f {
-                    Spair::random(&Fr::random())
-                } else {
-                    Spair::random(&s)
-                }
-            }).collect();
-
-            assert!(!checkvec(&a, &p));
-        }
-    }
-
-    fn samepower_test_each_group(i: usize, f: usize)
-    {
-        samepower_general_test::<G1, G2>(i, f);
-        samepower_general_test::<G2, G1>(i, f);
-    }
-
-    samepower_test_each_group(1, 0);
-    samepower_test_each_group(10, 5);
-    samepower_test_each_group(100, 50);
 }

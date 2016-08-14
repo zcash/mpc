@@ -181,6 +181,15 @@ pub trait Group: Sized + Send +
     fn zero() -> Self;
     fn one() -> Self;
     fn random() -> Self;
+    fn random_nonzero() -> Self {
+        let mut tmp = Self::random();
+
+        while tmp.is_zero() {
+            tmp = Self::random();
+        }
+
+        tmp
+    }
     fn is_zero(&self) -> bool;
 }
 

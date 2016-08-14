@@ -5,46 +5,108 @@ use lagrange::*;
 use std::collections::HashMap;
 
 #[derive(Clone)]
-struct Info<T> {
-    tau: T,
-    rho_a: T,
-    rho_b: T,
-    alpha_a: T,
-    alpha_b: T,
-    alpha_c: T,
-    beta: T,
-    gamma: T
+struct Secrets {
+    tau: Fr,
+    rho_a: Fr,
+    rho_b: Fr,
+    alpha_a: Fr,
+    alpha_b: Fr,
+    alpha_c: Fr
 }
 
 type BlakeHash = [u8; 1];
-type Secrets = Info<Fr>;
-type Spairs = Info<Spair<G2>>;
+
+#[derive(Clone)]
+struct Spairs {
+    tau: Spair<G2>,
+    a: G2, // f1
+    b: G2, // f1 * rho_a
+    c: G2, // f1 * rho_a * alpha_a
+    d: G2, // f1 * rho_a * rho_b
+    e: G2, // f1 * rho_a * rho_b * alpha_c
+    f: G2, // f1 * rho_a * rho_b * alpha_b
+    aA: Spair<G1>, // (f2, f2 * alpha_a)
+    aC: Spair<G1>, // (f3, f3 * alpha_c)
+    pB: Spair<G1>, // (f4, f4 * rho_b)
+    pApB: Spair<G1> // (f5, f5 * rho_a)
+}
+
+impl Spairs {
+    fn is_valid(&self) -> bool {
+        !self.a.is_zero() &&
+        !self.b.is_zero() &&
+        !self.c.is_zero() &&
+        !self.d.is_zero() &&
+        !self.e.is_zero() &&
+        !self.f.is_zero() &&
+        same_power(&self.aA, &Spair::new(&self.b, &self.c).unwrap()) &&
+        same_power(&self.aC, &Spair::new(&self.d, &self.e).unwrap()) &&
+        same_power(&self.pB, &Spair::new(&self.b, &self.d).unwrap()) &&
+        same_power(&self.pApB, &Spair::new(&self.a, &self.d).unwrap())
+    }
+
+    fn alpha_b(&self) -> Spair<G2> {
+        Spair::new(&self.d, &self.f).unwrap()
+    }
+
+    fn rho_a(&self) -> Spair<G2> {
+        Spair::new(&self.a, &self.b).unwrap()
+    }
+
+    fn alpha_a_rho_a(&self) -> Spair<G2> {
+        Spair::new(&self.a, &self.c).unwrap()
+    }
+
+    fn alpha_b_rho_b(&self) -> Spair<G2> {
+        Spair::new(&self.b, &self.f).unwrap()
+    }
+
+    fn rho_a_rho_b(&self) -> Spair<G2> {
+        Spair::new(&self.a, &self.d).unwrap()
+    }
+
+    fn alpha_c_rho_a_rho_b(&self) -> Spair<G2> {
+        Spair::new(&self.a, &self.e).unwrap()
+    }
+}
 
 impl Secrets {
     fn new() -> Secrets {
-        Info {
+        Secrets {
             tau: Fr::random_nonzero(),
             rho_a: Fr::random_nonzero(),
             rho_b: Fr::random_nonzero(),
             alpha_a: Fr::random_nonzero(),
             alpha_b: Fr::random_nonzero(),
-            alpha_c: Fr::random_nonzero(),
-            beta: Fr::random_nonzero(),
-            gamma: Fr::random_nonzero()
+            alpha_c: Fr::random_nonzero()
         }
     }
 
     fn spairs(&self) -> Spairs {
-        Info {
+        let a = G2::random_nonzero();
+        let b = a * self.rho_a;
+        let c = b * self.alpha_a;
+        let d = b * self.rho_b;
+        let e = d * self.alpha_c;
+        let f = d * self.alpha_b;
+
+        let tmp = Spairs {
             tau: Spair::random(&self.tau),
-            rho_a: Spair::random(&self.rho_a),
-            rho_b: Spair::random(&self.rho_b),
-            alpha_a: Spair::random(&self.alpha_a),
-            alpha_b: Spair::random(&self.alpha_b),
-            alpha_c: Spair::random(&self.alpha_c),
-            beta: Spair::random(&self.beta),
-            gamma: Spair::random(&self.gamma)
-        }
+            a: a,
+            b: b,
+            c: c,
+            d: d,
+            e: e,
+            f: f,
+            aA: Spair::random(&self.alpha_a),
+            aC: Spair::random(&self.alpha_c),
+            pB: Spair::random(&self.rho_b),
+            pApB: Spair::random(&(self.rho_a * self.rho_b))
+        };
+
+        assert!(tmp.is_valid());
+
+        tmp
     }
 }
 
@@ -96,11 +158,34 @@ impl Player {
 
     fn random_coeffs_part_one(
         &self,
-        pk_A: &[G1]) -> Vec<G1>
+        vk_A: &mut G2,
+        vk_B: &mut G1,
+        vk_C: &mut G2,
+        vk_Z: &mut G2,
+        pk_A: &mut [G1],
+        pk_A_prime: &mut [G1],
+        pk_B: &mut [G2],
+        pk_B_prime: &mut [G1],
+        pk_C: &mut [G1],
+        pk_C_prime: &mut [G1])
     {
-        pk_A.iter().map(|a| {
-            *a * self.secrets.rho_a
-        }).collect()
+        *vk_A = *vk_A * self.secrets.alpha_a;
+        *vk_B = *vk_B * self.secrets.alpha_b;
+        *vk_C = *vk_C * self.secrets.alpha_c;
+        *vk_Z = *vk_Z * (self.secrets.rho_a * self.secrets.rho_b);
+
+        fn mul_all_by<G: Group>(v: &mut [G], by: Fr) {
+            for e in v {
+                *e = *e * by;
+            }
+        }
+
+        mul_all_by(pk_A, self.secrets.rho_a);
+        mul_all_by(pk_A_prime, (self.secrets.rho_a * self.secrets.alpha_a));
+        mul_all_by(pk_B, self.secrets.rho_b);
+        mul_all_by(pk_B_prime, (self.secrets.rho_b * self.secrets.alpha_b));
+        mul_all_by(pk_C, (self.secrets.rho_a * self.secrets.rho_b));
+        mul_all_by(pk_C_prime, (self.secrets.rho_a * self.secrets.rho_b * self.secrets.alpha_c));
     }
 }
 
@@ -123,7 +208,7 @@ impl Coordinator {
     {
         self.spairs.insert(i, spairs.clone());
 
-        blake2s(&spairs) == self.commitments[i]
+        spairs.is_valid() && blake2s(&spairs) == self.commitments[i]
     }
 
     fn check_taupowers(
@@ -176,6 +261,53 @@ impl Coordinator {
         ct.push(g1_powers[cs.d] - G1::one());
 
         (at, bt1, bt2, ct)
+    }
+
+    fn check_random_coeffs_part_one(
+        &self,
+        player: usize,
+        prev_vk_A: &G2,
+        prev_vk_B: &G1,
+        prev_vk_C: &G2,
+        prev_vk_Z: &G2,
+        prev_pk_A: &[G1],
+        prev_pk_A_prime: &[G1],
+        prev_pk_B: &[G2],
+        prev_pk_B_prime: &[G1],
+        prev_pk_C: &[G1],
+        prev_pk_C_prime: &[G1],
+        cur_vk_A: &G2,
+        cur_vk_B: &G1,
+        cur_vk_C: &G2,
+        cur_vk_Z: &G2,
+        cur_pk_A: &[G1],
+        cur_pk_A_prime: &[G1],
+        cur_pk_B: &[G2],
+        cur_pk_B_prime: &[G1],
+        cur_pk_C: &[G1],
+        cur_pk_C_prime: &[G1]
+    ) -> bool
+    {
+        !prev_vk_A.is_zero() && !cur_vk_A.is_zero() &&
+        !prev_vk_B.is_zero() && !cur_vk_B.is_zero() &&
+        !prev_vk_C.is_zero() && !cur_vk_C.is_zero() &&
+        !prev_vk_Z.is_zero() && !cur_vk_Z.is_zero() &&
+        prev_pk_A.len() == cur_pk_A.len() &&
+        prev_pk_A_prime.len() == cur_pk_A_prime.len() &&
+        prev_pk_B.len() == cur_pk_B.len() &&
+        prev_pk_B_prime.len() == cur_pk_B_prime.len() &&
+        prev_pk_C.len() == cur_pk_C.len() &&
+        prev_pk_C_prime.len() == cur_pk_C_prime.len() &&
+        same_power(&Spair::new(prev_vk_A, cur_vk_A).unwrap(), &self.spairs[&player].aA) &&
+        same_power(&Spair::new(prev_vk_B, cur_vk_B).unwrap(), &self.spairs[&player].alpha_b()) &&
+        same_power(&Spair::new(prev_vk_C, cur_vk_C).unwrap(), &self.spairs[&player].aC) &&
+        same_power(&Spair::new(prev_vk_Z, cur_vk_Z).unwrap(), &self.spairs[&player].pApB) &&
+        check(prev_pk_A.iter().zip(cur_pk_A.iter()), &self.spairs[&player].rho_a()) &&
+        check(prev_pk_A_prime.iter().zip(cur_pk_A_prime.iter()), &self.spairs[&player].alpha_a_rho_a()) &&
+        check(prev_pk_B.iter().zip(cur_pk_B.iter()), &self.spairs[&player].pB) &&
+        check(prev_pk_B_prime.iter().zip(cur_pk_B_prime.iter()), &self.spairs[&player].alpha_b_rho_b()) &&
+        check(prev_pk_C.iter().zip(cur_pk_C.iter()), &self.spairs[&player].rho_a_rho_b()) &&
+        check(prev_pk_C_prime.iter().zip(cur_pk_C_prime.iter()), &self.spairs[&player].alpha_c_rho_a_rho_b())
     }
 }
 
@@ -238,13 +370,79 @@ fn implthing() {
 
 
     // Phase 4: Random Coefficients, part I
-    // Compute PK_A
+    let mut vk_A = G2::one();
+    let mut vk_B = G1::one();
+    let mut vk_C = G2::one();
+    let mut vk_Z = bt2[bt2.len() - 1]; // last value is Z(tau) in G2
     let mut pk_A = at.clone();
+    let mut pk_A_prime = at.clone();
+    let mut pk_B = bt2.clone();
+    let mut pk_B_prime = bt1.clone();
+    let mut pk_C = ct.clone();
+    let mut pk_C_prime = ct.clone();
     
     for (i, player) in players.iter().enumerate() {
         match *player {
             Some(ref player) => {
-                let new_pk_A = player.random_coeffs_part_one(&pk_A);
+                let mut new_vk_A = vk_A.clone();
+                let mut new_vk_B = vk_B.clone();
+                let mut new_vk_C = vk_C.clone();
+                let mut new_vk_Z = vk_Z.clone();
+                let mut new_pk_A = pk_A.clone();
+                let mut new_pk_A_prime = pk_A_prime.clone();
+                let mut new_pk_B = pk_B.clone();
+                let mut new_pk_B_prime = pk_B_prime.clone();
+                let mut new_pk_C = pk_C.clone();
+                let mut new_pk_C_prime = pk_C_prime.clone();
+
+                player.random_coeffs_part_one(
+                    &mut new_vk_A,
+                    &mut new_vk_B,
+                    &mut new_vk_C,
+                    &mut new_vk_Z,
+                    &mut new_pk_A,
+                    &mut new_pk_A_prime,
+                    &mut new_pk_B,
+                    &mut new_pk_B_prime,
+                    &mut new_pk_C,
+                    &mut new_pk_C_prime
+                );
+
+                assert!(coordinator.check_random_coeffs_part_one(
+                    i,
+                    &vk_A,
+                    &vk_B,
+                    &vk_C,
+                    &vk_Z,
+                    &pk_A,
+                    &pk_A_prime,
+                    &pk_B,
+                    &pk_B_prime,
+                    &pk_C,
+                    &pk_C_prime,
+                    &new_vk_A,
+                    &new_vk_B,
+                    &new_vk_C,
+                    &new_vk_Z,
+                    &new_pk_A,
+                    &new_pk_A_prime,
+                    &new_pk_B,
+                    &new_pk_B_prime,
+                    &new_pk_C,
+                    &new_pk_C_prime
+                ));
+
+                vk_A = new_vk_A;
+                vk_B = new_vk_B;
+                vk_C = new_vk_C;
+                vk_Z = new_vk_Z;
+
+                pk_A = new_pk_A;
+                pk_A_prime = new_pk_A_prime;
+                pk_B = new_pk_B;
+                pk_B_prime = new_pk_B_prime;
+                pk_C = new_pk_C;
+                pk_C_prime = new_pk_C_prime;
             },
             None => {
                 // Player aborted before this round.
@@ -252,7 +450,6 @@ fn implthing() {
         }
     }    
 
-
-
+    // Compare against libsnark:
 
 }
