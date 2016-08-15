@@ -1,7 +1,44 @@
-use snark::{Group, Fr};
+use snark::*;
 use crossbeam;
 
-pub fn lagrange_coeffs<G: Group>(v: &[G], omega: Fr) -> Vec<G>
+/// Evaluates the QAP A, B and C polynomials at tau given the powers of tau.
+/// Converts the powers of tau in G1 and G2 into the lagrange basis with an FFT
+/// Extends with Z(tau) as (effectively) done in libsnark.
+pub fn evaluate_qap(g1_powers: &[G1], g2_powers: &[G2], cs: &CS) -> (Vec<G1>, Vec<G1>, Vec<G2>, Vec<G1>)
+{
+    assert_eq!(g1_powers.len(), g2_powers.len());
+    assert_eq!(g2_powers.len(), cs.d+1);
+
+    let lc1 = lagrange_coeffs(&g1_powers[0..cs.d], cs.omega);
+    let lc2 = lagrange_coeffs(&g2_powers[0..cs.d], cs.omega);
+
+    let (mut at, mut bt1, mut bt2, mut ct) = evaluate_qap_polynomials(&lc1, &lc2, cs);
+
+    // Extention of Z(tau)
+    at.push(g1_powers[cs.d] - G1::one());
+    bt1.push(g1_powers[cs.d] - G1::one());
+    bt2.push(g2_powers[cs.d] - G2::one());
+    ct.push(g1_powers[cs.d] - G1::one());
+
+    (at, bt1, bt2, ct)
+}
+
+fn evaluate_qap_polynomials(lc1: &[G1], lc2: &[G2], cs: &CS) -> (Vec<G1>, Vec<G1>, Vec<G2>, Vec<G1>)
+{
+    assert_eq!(lc1.len(), lc2.len());
+    assert_eq!(lc2.len(), cs.d);
+
+    let mut at = (0..cs.num_vars).map(|_| G1::zero()).collect::<Vec<_>>();
+    let mut bt1 = (0..cs.num_vars).map(|_| G1::zero()).collect::<Vec<_>>();
+    let mut bt2 = (0..cs.num_vars).map(|_| G2::zero()).collect::<Vec<_>>();
+    let mut ct = (0..cs.num_vars).map(|_| G1::zero()).collect::<Vec<_>>();
+
+    cs.eval(&lc1, &lc2, &mut at, &mut bt1, &mut bt2, &mut ct);
+
+    (at, bt1, bt2, ct)
+}
+
+fn lagrange_coeffs<G: Group>(v: &[G], omega: Fr) -> Vec<G>
 {
     assert_eq!((v.len() / 2) * 2, v.len());
     const THREADS: usize = 8;
@@ -77,7 +114,7 @@ fn fft<G: Group>(v: &[G], omega: Fr, threads: usize) -> Vec<G>
 
 #[cfg(test)]
 mod test {
-    use super::lagrange_coeffs;
+    use super::{lagrange_coeffs, evaluate_qap_polynomials};
     use snark::*;
     use taupowers::*;
 
@@ -117,13 +154,7 @@ mod test {
         // Wrong tau
         assert!(!cs.test_compare_tau(&lc1, &lc2, &Fr::random()));
 
-        // Evaluate At, Ct in G1 and Bt in G1/G2
-        let mut at = (0..cs.num_vars).map(|_| G1::zero()).collect::<Vec<_>>();
-        let mut bt1 = (0..cs.num_vars).map(|_| G1::zero()).collect::<Vec<_>>();
-        let mut bt2 = (0..cs.num_vars).map(|_| G2::zero()).collect::<Vec<_>>();
-        let mut ct = (0..cs.num_vars).map(|_| G1::zero()).collect::<Vec<_>>();
-
-        cs.eval(&lc1, &lc2, &mut at, &mut bt1, &mut bt2, &mut ct);
+        let (at, bt1, bt2, ct) = evaluate_qap_polynomials(&lc1, &lc2, &cs);
 
         // Compare evaluation with libsnark
         assert!(cs.test_eval(&tau, &at, &bt1, &bt2, &ct));

@@ -3,7 +3,7 @@ extern crate crossbeam;
 
 mod taupowers;
 mod sequences;
-mod lagrange;
+mod qap;
 mod protocol;
 mod spair;
 

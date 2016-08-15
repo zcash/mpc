@@ -1,7 +1,7 @@
 use snark::*;
 use spair::*;
 use taupowers::*;
-use lagrange::*;
+use qap::*;
 use std::collections::HashMap;
 
 #[derive(Clone)]
@@ -239,30 +239,6 @@ impl Coordinator {
         checkseq(cur_g2.iter(), &Spair::new(&cur_g1[0], &cur_g1[1]).unwrap())
     }
 
-    fn evaluate_qap(&self, g1_powers: &[G1], g2_powers: &[G2], cs: &CS) -> (Vec<G1>, Vec<G1>, Vec<G2>, Vec<G1>)
-    {
-        assert_eq!(g1_powers.len(), g2_powers.len());
-        assert_eq!(g2_powers.len(), cs.d+1);
-
-        let lc1 = lagrange_coeffs(&g1_powers[0..cs.d], cs.omega);
-        let lc2 = lagrange_coeffs(&g2_powers[0..cs.d], cs.omega);
-
-        let mut at = (0..cs.num_vars).map(|_| G1::zero()).collect::<Vec<_>>();
-        let mut bt1 = (0..cs.num_vars).map(|_| G1::zero()).collect::<Vec<_>>();
-        let mut bt2 = (0..cs.num_vars).map(|_| G2::zero()).collect::<Vec<_>>();
-        let mut ct = (0..cs.num_vars).map(|_| G1::zero()).collect::<Vec<_>>();
-
-        cs.eval(&lc1, &lc2, &mut at, &mut bt1, &mut bt2, &mut ct);
-
-        // Push Zt = g^(tau^d - 1) = g^(tau^d) - g
-        at.push(g1_powers[cs.d] - G1::one());
-        bt1.push(g1_powers[cs.d] - G1::one());
-        bt2.push(g2_powers[cs.d] - G2::one());
-        ct.push(g1_powers[cs.d] - G1::one());
-
-        (at, bt1, bt2, ct)
-    }
-
     fn check_random_coeffs_part_one(
         &self,
         player: usize,
@@ -366,7 +342,7 @@ fn implthing() {
     // Phase 3: Remote computation
     // The coordinator performs an FFT and evaluates the QAP,
     // also performing Z extention.
-    let (at, bt1, bt2, ct) = coordinator.evaluate_qap(&powers_of_tau_g1, &powers_of_tau_g2, &cs);
+    let (at, bt1, bt2, ct) = evaluate_qap(&powers_of_tau_g1, &powers_of_tau_g2, &cs);
 
 
     // Phase 4: Random Coefficients, part I
