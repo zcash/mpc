@@ -11,7 +11,9 @@ struct Secrets {
     rho_b: Fr,
     alpha_a: Fr,
     alpha_b: Fr,
-    alpha_c: Fr
+    alpha_c: Fr,
+    beta: Fr,
+    gamma: Fr
 }
 
 type BlakeHash = [u8; 1];
@@ -25,10 +27,12 @@ struct Spairs {
     f1pApB: G2, // f1 * rho_a * rho_b
     f1pApBaC: G2, // f1 * rho_a * rho_b * alpha_c
     f1pApBaB: G2, // f1 * rho_a * rho_b * alpha_b
+    f6betagamma: G2, // f6 * beta * gamma
     aA: Spair<G1>, // (f2, f2 * alpha_a)
     aC: Spair<G1>, // (f3, f3 * alpha_c)
     pB: Spair<G1>, // (f4, f4 * rho_b)
-    pApB: Spair<G1> // (f5, f5 * rho_a)
+    pApB: Spair<G1>, // (f5, f5 * rho_a)
+    beta: Spair<G2> // (f6, f6 * beta)
 }
 
 impl Spairs {
@@ -78,7 +82,9 @@ impl Secrets {
             rho_b: Fr::random_nonzero(),
             alpha_a: Fr::random_nonzero(),
             alpha_b: Fr::random_nonzero(),
-            alpha_c: Fr::random_nonzero()
+            alpha_c: Fr::random_nonzero(),
+            beta: Fr::random_nonzero(),
+            gamma: Fr::random_nonzero()
         }
     }
 
@@ -89,6 +95,8 @@ impl Secrets {
         let f1pApB = f1pA * self.rho_b;
         let f1pApBaC = f1pApB * self.alpha_c;
         let f1pApBaB = f1pApB * self.alpha_b;
+        let f6 = G2::random_nonzero();
+        let f6betagamma = f6 * self.beta * self.gamma;
 
         let tmp = Spairs {
             tau: Spair::random(&self.tau),
@@ -98,10 +106,12 @@ impl Secrets {
             f1pApB: f1pApB,
             f1pApBaC: f1pApBaC,
             f1pApBaB: f1pApBaB,
+            f6betagamma: f6betagamma,
             aA: Spair::random(&self.alpha_a),
             aC: Spair::random(&self.alpha_c),
             pB: Spair::random(&self.rho_b),
-            pApB: Spair::random(&(self.rho_a * self.rho_b))
+            pApB: Spair::random(&(self.rho_a * self.rho_b)),
+            beta: Spair::random(&self.beta)
         };
 
         assert!(tmp.is_valid());
