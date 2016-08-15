@@ -19,12 +19,12 @@ type BlakeHash = [u8; 1];
 #[derive(Clone)]
 struct Spairs {
     tau: Spair<G2>,
-    a: G2, // f1
-    b: G2, // f1 * rho_a
-    c: G2, // f1 * rho_a * alpha_a
-    d: G2, // f1 * rho_a * rho_b
-    e: G2, // f1 * rho_a * rho_b * alpha_c
-    f: G2, // f1 * rho_a * rho_b * alpha_b
+    f1: G2, // f1
+    f1pA: G2, // f1 * rho_a
+    f1pAaA: G2, // f1 * rho_a * alpha_a
+    f1pApB: G2, // f1 * rho_a * rho_b
+    f1pApBaC: G2, // f1 * rho_a * rho_b * alpha_c
+    f1pApBaB: G2, // f1 * rho_a * rho_b * alpha_b
     aA: Spair<G1>, // (f2, f2 * alpha_a)
     aC: Spair<G1>, // (f3, f3 * alpha_c)
     pB: Spair<G1>, // (f4, f4 * rho_b)
@@ -33,40 +33,40 @@ struct Spairs {
 
 impl Spairs {
     fn is_valid(&self) -> bool {
-        !self.a.is_zero() &&
-        !self.b.is_zero() &&
-        !self.c.is_zero() &&
-        !self.d.is_zero() &&
-        !self.e.is_zero() &&
-        !self.f.is_zero() &&
-        same_power(&self.aA, &Spair::new(&self.b, &self.c).unwrap()) &&
-        same_power(&self.aC, &Spair::new(&self.d, &self.e).unwrap()) &&
-        same_power(&self.pB, &Spair::new(&self.b, &self.d).unwrap()) &&
-        same_power(&self.pApB, &Spair::new(&self.a, &self.d).unwrap())
+        !self.f1.is_zero() &&
+        !self.f1pA.is_zero() &&
+        !self.f1pAaA.is_zero() &&
+        !self.f1pApB.is_zero() &&
+        !self.f1pApBaC.is_zero() &&
+        !self.f1pApBaB.is_zero() &&
+        same_power(&self.aA, &Spair::new(&self.f1pA, &self.f1pAaA).unwrap()) &&
+        same_power(&self.aC, &Spair::new(&self.f1pApB, &self.f1pApBaC).unwrap()) &&
+        same_power(&self.pB, &Spair::new(&self.f1pA, &self.f1pApB).unwrap()) &&
+        same_power(&self.pApB, &Spair::new(&self.f1, &self.f1pApB).unwrap())
     }
 
     fn alpha_b(&self) -> Spair<G2> {
-        Spair::new(&self.d, &self.f).unwrap()
+        Spair::new(&self.f1pApB, &self.f1pApBaB).unwrap()
     }
 
     fn rho_a(&self) -> Spair<G2> {
-        Spair::new(&self.a, &self.b).unwrap()
+        Spair::new(&self.f1, &self.f1pA).unwrap()
     }
 
     fn alpha_a_rho_a(&self) -> Spair<G2> {
-        Spair::new(&self.a, &self.c).unwrap()
+        Spair::new(&self.f1, &self.f1pAaA).unwrap()
     }
 
     fn alpha_b_rho_b(&self) -> Spair<G2> {
-        Spair::new(&self.b, &self.f).unwrap()
+        Spair::new(&self.f1pA, &self.f1pApBaB).unwrap()
     }
 
     fn rho_a_rho_b(&self) -> Spair<G2> {
-        Spair::new(&self.a, &self.d).unwrap()
+        Spair::new(&self.f1, &self.f1pApB).unwrap()
     }
 
     fn alpha_c_rho_a_rho_b(&self) -> Spair<G2> {
-        Spair::new(&self.a, &self.e).unwrap()
+        Spair::new(&self.f1, &self.f1pApBaC).unwrap()
     }
 }
 
@@ -83,21 +83,21 @@ impl Secrets {
     }
 
     fn spairs(&self) -> Spairs {
-        let a = G2::random_nonzero();
-        let b = a * self.rho_a;
-        let c = b * self.alpha_a;
-        let d = b * self.rho_b;
-        let e = d * self.alpha_c;
-        let f = d * self.alpha_b;
+        let f1 = G2::random_nonzero();
+        let f1pA = f1 * self.rho_a;
+        let f1pAaA = f1pA * self.alpha_a;
+        let f1pApB = f1pA * self.rho_b;
+        let f1pApBaC = f1pApB * self.alpha_c;
+        let f1pApBaB = f1pApB * self.alpha_b;
 
         let tmp = Spairs {
             tau: Spair::random(&self.tau),
-            a: a,
-            b: b,
-            c: c,
-            d: d,
-            e: e,
-            f: f,
+            f1: f1,
+            f1pA: f1pA,
+            f1pAaA: f1pAaA,
+            f1pApB: f1pApB,
+            f1pApBaC: f1pApBaC,
+            f1pApBaB: f1pApBaB,
             aA: Spair::random(&self.alpha_a),
             aC: Spair::random(&self.alpha_c),
             pB: Spair::random(&self.rho_b),
