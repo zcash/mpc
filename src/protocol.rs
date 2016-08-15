@@ -158,34 +158,33 @@ impl Player {
 
     fn random_coeffs_part_one(
         &self,
-        vk_A: &mut G2,
-        vk_B: &mut G1,
-        vk_C: &mut G2,
-        vk_Z: &mut G2,
-        pk_A: &mut [G1],
-        pk_A_prime: &mut [G1],
-        pk_B: &mut [G2],
-        pk_B_prime: &mut [G1],
-        pk_C: &mut [G1],
-        pk_C_prime: &mut [G1])
+        vk_A: &G2,
+        vk_B: &G1,
+        vk_C: &G2,
+        vk_Z: &G2,
+        pk_A: &[G1],
+        pk_A_prime: &[G1],
+        pk_B: &[G2],
+        pk_B_prime: &[G1],
+        pk_C: &[G1],
+        pk_C_prime: &[G1]) -> (G2, G1, G2, G2, Vec<G1>, Vec<G1>, Vec<G2>, Vec<G1>, Vec<G1>, Vec<G1>)
     {
-        *vk_A = *vk_A * self.secrets.alpha_a;
-        *vk_B = *vk_B * self.secrets.alpha_b;
-        *vk_C = *vk_C * self.secrets.alpha_c;
-        *vk_Z = *vk_Z * (self.secrets.rho_a * self.secrets.rho_b);
-
-        fn mul_all_by<G: Group>(v: &mut [G], by: Fr) {
-            for e in v {
-                *e = *e * by;
-            }
+        fn mul_all_by<G: Group>(v: &[G], c: Fr) -> Vec<G> {
+            v.iter().map(|g| *g * c).collect()
         }
 
-        mul_all_by(pk_A, self.secrets.rho_a);
-        mul_all_by(pk_A_prime, (self.secrets.rho_a * self.secrets.alpha_a));
-        mul_all_by(pk_B, self.secrets.rho_b);
-        mul_all_by(pk_B_prime, (self.secrets.rho_b * self.secrets.alpha_b));
-        mul_all_by(pk_C, (self.secrets.rho_a * self.secrets.rho_b));
-        mul_all_by(pk_C_prime, (self.secrets.rho_a * self.secrets.rho_b * self.secrets.alpha_c));
+        (
+            *vk_A * self.secrets.alpha_a,
+            *vk_B * self.secrets.alpha_b,
+            *vk_C * self.secrets.alpha_c,
+            *vk_Z * (self.secrets.rho_a * self.secrets.rho_b),
+            mul_all_by(pk_A, self.secrets.rho_a),
+            mul_all_by(pk_A_prime, (self.secrets.rho_a * self.secrets.alpha_a)),
+            mul_all_by(pk_B, self.secrets.rho_b),
+            mul_all_by(pk_B_prime, (self.secrets.rho_b * self.secrets.alpha_b)),
+            mul_all_by(pk_C, (self.secrets.rho_a * self.secrets.rho_b)),
+            mul_all_by(pk_C_prime, (self.secrets.rho_a * self.secrets.rho_b * self.secrets.alpha_c))
+        )
     }
 }
 
@@ -363,28 +362,28 @@ fn implthing() {
     for (i, player) in players.iter().enumerate() {
         match *player {
             Some(ref player) => {
-                let mut new_vk_A = vk_A.clone();
-                let mut new_vk_B = vk_B.clone();
-                let mut new_vk_C = vk_C.clone();
-                let mut new_vk_Z = vk_Z.clone();
-                let mut new_pk_A = pk_A.clone();
-                let mut new_pk_A_prime = pk_A_prime.clone();
-                let mut new_pk_B = pk_B.clone();
-                let mut new_pk_B_prime = pk_B_prime.clone();
-                let mut new_pk_C = pk_C.clone();
-                let mut new_pk_C_prime = pk_C_prime.clone();
-
-                player.random_coeffs_part_one(
-                    &mut new_vk_A,
-                    &mut new_vk_B,
-                    &mut new_vk_C,
-                    &mut new_vk_Z,
-                    &mut new_pk_A,
-                    &mut new_pk_A_prime,
-                    &mut new_pk_B,
-                    &mut new_pk_B_prime,
-                    &mut new_pk_C,
-                    &mut new_pk_C_prime
+                let (
+                    new_vk_A,
+                    new_vk_B,
+                    new_vk_C,
+                    new_vk_Z,
+                    new_pk_A,
+                    new_pk_A_prime,
+                    new_pk_B,
+                    new_pk_B_prime,
+                    new_pk_C,
+                    new_pk_C_prime
+                ) = player.random_coeffs_part_one(
+                    &vk_A,
+                    &vk_B,
+                    &vk_C,
+                    &vk_Z,
+                    &pk_A,
+                    &pk_A_prime,
+                    &pk_B,
+                    &pk_B_prime,
+                    &pk_C,
+                    &pk_C_prime
                 );
 
                 assert!(coordinator.check_random_coeffs_part_one(
@@ -415,7 +414,6 @@ fn implthing() {
                 vk_B = new_vk_B;
                 vk_C = new_vk_C;
                 vk_Z = new_vk_Z;
-
                 pk_A = new_pk_A;
                 pk_A_prime = new_pk_A_prime;
                 pk_B = new_pk_B;
