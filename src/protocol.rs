@@ -231,7 +231,7 @@ impl Coordinator {
         cur_g1[1] != G1::zero() &&
         prev_g2[1] != G2::zero() &&
         cur_g2[1] != G2::zero() &&
-        // Check that we've exponentiated on top of the previous one correctly
+        // Check that we've exponentiated on top of the previous player correctly
         same_power(&Spair::new(&prev_g1[1], &cur_g1[1]).unwrap(), &self.spairs[&player].tau) &&
         // Check that all G1 elements are exponentiated correctly
         checkseq(cur_g1.iter(), &Spair::new(&cur_g2[0], &cur_g2[1]).unwrap()) &&
@@ -319,12 +319,15 @@ fn implthing() {
     for (i, player) in players.iter().enumerate() {
         match *player {
             Some(ref player) => {
+                // Players reveal their spairs, which we check against their commitments
                 assert!(coordinator.check_commitment(i, player.spairs.clone()));
 
+                // Players compute the powers of tau given the previous player
                 let (new_g1, new_g2) = player.exponentiate_with_tau(
                     &powers_of_tau_g1, &powers_of_tau_g2
                 );
 
+                // Coordinator checks the powers of tau were computed correctly.
                 assert!(coordinator.check_taupowers(&powers_of_tau_g1, &powers_of_tau_g2, &new_g1, &new_g2, i));
 
                 powers_of_tau_g1 = new_g1;
@@ -426,6 +429,5 @@ fn implthing() {
         }
     }    
 
-    // Compare against libsnark:
-
+    
 }
