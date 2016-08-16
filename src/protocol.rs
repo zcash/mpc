@@ -510,16 +510,19 @@ fn implthing() {
         }
     }    
 
+    // Simulate another participant leaving the protocol
+    players[8] = None;
 
     // Phase 5: Random Coefficients, part II
     let mut vk_gamma = G2::one();
     let mut vk_beta_gamma_one = G1::one();
     let mut vk_beta_gamma_two = G2::one();
+
     // Initializing pk_K as pk_A + pk _B + pk_C
     let mut pk_K = Vec::with_capacity(pk_A.len());
 
     for ((&a, &b), &c) in pk_A.iter().zip(pk_B_temp.iter()).zip(pk_C.iter()) {
-        pk_K.push(a+b+c);
+        pk_K.push(a + b + c);
     }
 
     for (i, player) in players.iter().enumerate() {
