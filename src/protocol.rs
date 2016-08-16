@@ -27,12 +27,14 @@ struct Spairs {
     f1pApB: G2, // f1 * rho_a * rho_b
     f1pApBaC: G2, // f1 * rho_a * rho_b * alpha_c
     f1pApBaB: G2, // f1 * rho_a * rho_b * alpha_b
-    f6betagamma: G2, // f6 * beta * gamma
-    aA: Spair<G1>, // (f2, f2 * alpha_a)
-    aC: Spair<G1>, // (f3, f3 * alpha_c)
-    pB: Spair<G1>, // (f4, f4 * rho_b)
-    pApB: Spair<G1>, // (f5, f5 * rho_a)
-    beta: Spair<G2> // (f6, f6 * beta)
+    f2: G2, // f2
+    f2beta: G2, // f2 * beta
+    f2betagamma: G2, // f2 * beta * gamma
+    aA: Spair<G1>, // (f3, f3 * alpha_a)
+    aC: Spair<G1>, // (f4, f4 * alpha_c)
+    pB: Spair<G1>, // (f5, f5 * rho_b)
+    pApB: Spair<G1>, // (f6, f6 * rho_a)
+    gamma: Spair<G1> // (f7, f7 * gamma)
 }
 
 impl Spairs {
@@ -72,6 +74,15 @@ impl Spairs {
     fn alpha_c_rho_a_rho_b(&self) -> Spair<G2> {
         Spair::new(&self.f1, &self.f1pApBaC).unwrap()
     }
+
+    fn beta(&self) -> Spair<G2> {
+        Spair::new(&self.f2, &self.f2beta).unwrap()
+    }
+
+    fn beta_gamma(&self) -> Spair<G2> {
+        Spair::new(&self.f2, &self.f2betagamma).unwrap()
+    }
+
 }
 
 impl Secrets {
@@ -95,8 +106,9 @@ impl Secrets {
         let f1pApB = f1pA * self.rho_b;
         let f1pApBaC = f1pApB * self.alpha_c;
         let f1pApBaB = f1pApB * self.alpha_b;
-        let f6 = G2::random_nonzero();
-        let f6betagamma = f6 * self.beta * self.gamma;
+        let f2 = G2::random_nonzero();
+        let f2beta = f2 * self.beta;
+        let f2betagamma = f2beta * self.gamma;
 
         let tmp = Spairs {
             tau: Spair::random(&self.tau),
@@ -106,12 +118,14 @@ impl Secrets {
             f1pApB: f1pApB,
             f1pApBaC: f1pApBaC,
             f1pApBaB: f1pApBaB,
-            f6betagamma: f6betagamma,
+            f2: f2,
+            f2beta: f2beta,
+            f2betagamma: f2betagamma,
             aA: Spair::random(&self.alpha_a),
             aC: Spair::random(&self.alpha_c),
             pB: Spair::random(&self.rho_b),
             pApB: Spair::random(&(self.rho_a * self.rho_b)),
-            beta: Spair::random(&self.beta)
+            gamma: Spair::random(&self.gamma)
         };
 
         assert!(tmp.is_valid());
@@ -294,8 +308,31 @@ impl Coordinator {
         check(prev_pk_C.iter().zip(cur_pk_C.iter()), &self.spairs[&player].rho_a_rho_b()) &&
         check(prev_pk_C_prime.iter().zip(cur_pk_C_prime.iter()), &self.spairs[&player].alpha_c_rho_a_rho_b())
     }
-}
 
+
+fn check_random_coeffs_part_two(
+        &self,
+        player: usize,
+        prev_vk_gamma: &G2,
+        prev_vk_beta_gamma: &G1,
+        prev_vk_beta_gamma_two: &G2,
+        prev_pk_K: &[G1],
+        cur_vk_gamma: &G2,
+        cur_vk_beta_gamma: &G1,
+        cur_vk_beta_gamma_two: &G2,
+        cur_pk_K: &[G1]   
+    ) -> bool
+    {
+        !prev_vk_gamma.is_zero() && !cur_vk_gamma.is_zero() &&
+        !prev_vk_beta_gamma.is_zero() && !cur_vk_beta_gamma.is_zero() &&
+        !prev_vk_beta_gamma_two.is_zero() && !cur_vk_beta_gamma_two.is_zero() &&
+        prev_pk_K.len() == cur_pk_K.len() &&
+            same_power(&Spair::new(prev_vk_gamma, cur_vk_gamma).unwrap(), &self.spairs[&player].gamma) &&
+        same_power(&Spair::new(prev_vk_beta_gamma, cur_vk_beta_gamma).unwrap(), &self.spairs[&player].beta_gamma()) &&
+        same_power(&Spair::new(prev_vk_beta_gamma_two, cur_vk_beta_gamma_two).unwrap(), &Spair::new(prev_vk_beta_gamma, cur_vk_beta_gamma).unwrap()) &&
+        check(prev_pk_K.iter().zip(cur_pk_K.iter()), &self.spairs[&player].beta())
+    }
+}
 #[test]
 fn implthing() {
     initialize();
