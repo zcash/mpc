@@ -98,6 +98,20 @@ impl Spairs {
 }
 
 impl Secrets {
+    #[cfg(test)]
+    fn new_blank() -> Secrets {
+        Secrets {
+            tau: Fr::one(),
+            rho_a: Fr::one(),
+            rho_b: Fr::one(),
+            alpha_a: Fr::one(),
+            alpha_b: Fr::one(),
+            alpha_c: Fr::one(),
+            beta: Fr::one(),
+            gamma: Fr::one()
+        }
+    }
+
     fn new() -> Secrets {
         Secrets {
             tau: Fr::random_nonzero(),
@@ -165,6 +179,18 @@ impl Player {
             secrets: secrets,
             spairs: spairs
         }
+    }
+
+    #[cfg(test)]
+    fn test_multiply_secrets(&self, acc: &mut Secrets) {
+        acc.tau = acc.tau * self.secrets.tau;
+        acc.alpha_a = acc.alpha_a * self.secrets.alpha_a;
+        acc.alpha_b = acc.alpha_b * self.secrets.alpha_b;
+        acc.alpha_c = acc.alpha_c * self.secrets.alpha_c;
+        acc.rho_a = acc.rho_a * self.secrets.rho_a;
+        acc.rho_b = acc.rho_b * self.secrets.rho_b;
+        acc.beta = acc.beta * self.secrets.beta;
+        acc.gamma = acc.gamma * self.secrets.gamma;
     }
 
     fn spairs_commitment(&self) -> BlakeHash {
@@ -383,9 +409,6 @@ fn implthing() {
         Some(player)
     }).collect::<Vec<_>>();
 
-    // Simulate one participant leaving the protocol
-    players[3] = None;
-
     // Phase 2: Random powers protocol
     //  Each player needs to output spairs
     //  Each player needs to output powers of tau in G1/G2
@@ -414,9 +437,6 @@ fn implthing() {
             }
         }
     }
-
-    // Simulate another participant leaving the protocol
-    players[6] = None;
 
     // Phase 3: Remote computation
     // The coordinator performs an FFT and evaluates the QAP,
@@ -508,10 +528,7 @@ fn implthing() {
                 // Player aborted before this round.
             }
         }
-    }    
-
-    // Simulate another participant leaving the protocol
-    players[8] = None;
+    }
 
     // Phase 5: Random Coefficients, part II
     let mut vk_gamma = G2::one();
@@ -562,5 +579,19 @@ fn implthing() {
             }
         }
     }
+    
+    let mut shared_secrets = Secrets::new_blank();
+
+    for p in &players {
+        match *p {
+            Some(ref p) => {
+                p.test_multiply_secrets(&mut shared_secrets);
+            },
+            None => {
+                unreachable!()
+            }
+        }
+    }
+
     
 }
