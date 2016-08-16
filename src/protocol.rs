@@ -4,6 +4,10 @@ use taupowers::*;
 use qap::*;
 use std::collections::HashMap;
 
+fn mul_all_by<G: Group>(v: &[G], c: Fr) -> Vec<G> {
+    v.iter().map(|g| *g * c).collect()
+}
+
 #[derive(Clone)]
 struct Secrets {
     tau: Fr,
@@ -45,10 +49,14 @@ impl Spairs {
         !self.f1pApB.is_zero() &&
         !self.f1pApBaC.is_zero() &&
         !self.f1pApBaB.is_zero() &&
+        !self.f2.is_zero() &&
+        !self.f2beta.is_zero() &&
+        !self.f2betagamma.is_zero() &&
         same_power(&self.aA, &Spair::new(&self.f1pA, &self.f1pAaA).unwrap()) &&
         same_power(&self.aC, &Spair::new(&self.f1pApB, &self.f1pApBaC).unwrap()) &&
         same_power(&self.pB, &Spair::new(&self.f1pA, &self.f1pApB).unwrap()) &&
-        same_power(&self.pApB, &Spair::new(&self.f1, &self.f1pApB).unwrap())
+        same_power(&self.pApB, &Spair::new(&self.f1, &self.f1pApB).unwrap()) &&
+        same_power(&self.gamma, &Spair::new(&self.f2beta, &self.f2betagamma).unwrap())
     }
 
     fn alpha_b(&self) -> Spair<G2> {
@@ -198,10 +206,6 @@ impl Player {
         pk_C: &[G1],
         pk_C_prime: &[G1]) -> (G2, G1, G2, G2, Vec<G1>, Vec<G1>, Vec<G2>, Vec<G1>, Vec<G1>, Vec<G1>, Vec<G1>)
     {
-        fn mul_all_by<G: Group>(v: &[G], c: Fr) -> Vec<G> {
-            v.iter().map(|g| *g * c).collect()
-        }
-
         (
             *vk_A * self.secrets.alpha_a,
             *vk_B * self.secrets.alpha_b,
@@ -220,18 +224,14 @@ impl Player {
     fn random_coeffs_part_two(
         &self,
         vk_gamma: &G2,
-        vk_beta_gamma: &G1,
+        vk_beta_gamma_one: &G1,
         vk_beta_gamma_two: &G2,
         pk_K: &[G1]) -> (G2, G1, G2, Vec<G1>)
     {
-        fn mul_all_by<G: Group>(v: &[G], c: Fr) -> Vec<G> {
-            v.iter().map(|g| *g * c).collect()
-        }
-
         (
             *vk_gamma * self.secrets.gamma,
-            *vk_beta_gamma * self.secrets.beta * self.secrets.gamma,
-            *vk_beta_gamma_two * self.secrets.beta * self.secrets.gamma,
+            *vk_beta_gamma_one * (self.secrets.beta * self.secrets.gamma),
+            *vk_beta_gamma_two * (self.secrets.beta * self.secrets.gamma),
             mul_all_by(pk_K, self.secrets.beta)
         )
     }
@@ -339,29 +339,30 @@ impl Coordinator {
     }
 
 
-fn check_random_coeffs_part_two(
+    fn check_random_coeffs_part_two(
         &self,
         player: usize,
         prev_vk_gamma: &G2,
-        prev_vk_beta_gamma: &G1,
+        prev_vk_beta_gamma_one: &G1,
         prev_vk_beta_gamma_two: &G2,
         prev_pk_K: &[G1],
         cur_vk_gamma: &G2,
-        cur_vk_beta_gamma: &G1,
+        cur_vk_beta_gamma_one: &G1,
         cur_vk_beta_gamma_two: &G2,
         cur_pk_K: &[G1]   
     ) -> bool
     {
         !prev_vk_gamma.is_zero() && !cur_vk_gamma.is_zero() &&
-        !prev_vk_beta_gamma.is_zero() && !cur_vk_beta_gamma.is_zero() &&
+        !prev_vk_beta_gamma_one.is_zero() && !cur_vk_beta_gamma_one.is_zero() &&
         !prev_vk_beta_gamma_two.is_zero() && !cur_vk_beta_gamma_two.is_zero() &&
         prev_pk_K.len() == cur_pk_K.len() &&
         same_power(&Spair::new(prev_vk_gamma, cur_vk_gamma).unwrap(), &self.spairs[&player].gamma) &&
-        same_power(&Spair::new(prev_vk_beta_gamma, cur_vk_beta_gamma).unwrap(), &self.spairs[&player].beta_gamma()) &&
-        same_power(&Spair::new(prev_vk_beta_gamma_two, cur_vk_beta_gamma_two).unwrap(), &Spair::new(prev_vk_beta_gamma, cur_vk_beta_gamma).unwrap()) &&
+        same_power(&Spair::new(prev_vk_beta_gamma_one, cur_vk_beta_gamma_one).unwrap(), &self.spairs[&player].beta_gamma()) &&
+        same_power(&Spair::new(prev_vk_beta_gamma_two, cur_vk_beta_gamma_two).unwrap(), &Spair::new(prev_vk_beta_gamma_one, cur_vk_beta_gamma_one).unwrap()) &&
         check(prev_pk_K.iter().zip(cur_pk_K.iter()), &self.spairs[&player].beta())
     }
 }
+
 #[test]
 fn implthing() {
     initialize();
@@ -512,7 +513,7 @@ fn implthing() {
 /*
     // Phase 5: Random Coefficients, part II
     let mut vk_gamma = G2::one();
-    let mut vk_beta_gamma = G1::one();
+    let mut vk_beta_gamma_one = G1::one();
     let mut vk_beta_gamma_two = G2::one();
     // Initializing pk_K as pk_A + pk _B + pk_C
     let mut pk_K = Vec::with_capacity(prev_g2.len());
@@ -529,12 +530,12 @@ fn implthing() {
             Some(ref player) => {
                 let (
                     new_vk_gamma,
-                    new_vk_beta_gamma,
+                    new_vk_beta_gamma_one,
                     new_vk_beta_gamma_two,
                     new_pk_K
                 ) = player.random_coeffs_part_two(
                     &vk_gamma,
-                    &vk_beta_gamma,
+                    &vk_beta_gamma_one,
                     &vk_beta_gamma_two,
                     &pk_K
                 );
@@ -542,17 +543,17 @@ fn implthing() {
                 assert!(coordinator.check_random_coeffs_part_two(
                     i,
                     &vk_gamma,
-                    &vk_beta_gamma,
+                    &vk_beta_gamma_one,
                     &vk_beta_gamma_two,
                     &pk_K,
                     &new_vk_gamma,
-                    &new_vk_beta_gamma,
+                    &new_vk_beta_gamma_one,
                     &new_vk_beta_gamma_two,
                     &new_pk_K
                 ));
 
                 vk_gamma = new_vk_gamma;
-                vk_beta_gamma = new_vk_beta_gamma;
+                vk_beta_gamma_one = new_vk_beta_gamma_one;
                 vk_beta_gamma_two = new_vk_beta_gamma_two;
                 pk_K = new_pk_K;
             },
