@@ -20,6 +20,7 @@ extern "C" {
     fn libsnarkwrap_pairing(p: *const G1, q: *const G2) -> Gt;
     fn libsnarkwrap_getcs(d: *mut libc::uint64_t, vars: *mut libc::uint64_t, omega: *mut Fr) -> *mut libc::c_void;
     fn libsnarkwrap_dropcs(cs: *mut libc::c_void);
+    fn libsnarkwrap_dropkeypair(kp: *mut libc::c_void);
     fn libsnarkwrap_eval(
         cs: *const libc::c_void,
         lc1: *const G1,
@@ -30,6 +31,17 @@ extern "C" {
         bt1: *mut G1,
         bt2: *mut G2,
         ct: *mut G1);
+    fn libsnarkwrap_test_keygen(
+        cs: *const libc::c_void,
+        tau: *const Fr,
+        alpha_a: *const Fr,
+        alpha_b: *const Fr,
+        alpha_c: *const Fr,
+        rho_a: *const Fr,
+        rho_b: *const Fr,
+        beta: *const Fr,
+        gamma: *const Fr
+    ) -> *mut libc::c_void;
     fn libsnarkwrap_test_eval(
         cs: *const libc::c_void,
         tau: *const Fr,
@@ -71,6 +83,32 @@ pub struct CS {
     pub d: usize,
     pub num_vars: usize,
     pub omega: Fr
+}
+
+pub struct Keypair {
+    ptr: *mut libc::c_void
+}
+
+impl Keypair {
+    pub fn generate(
+        cs: &CS,
+        tau: &Fr,
+        alpha_a: &Fr,
+        alpha_b: &Fr,
+        alpha_c: &Fr,
+        rho_a: &Fr,
+        rho_b: &Fr,
+        beta: &Fr,
+        gamma: &Fr
+    ) -> Keypair {
+        unsafe {
+            Keypair {
+                ptr: libsnarkwrap_test_keygen(
+                    cs.ptr, tau, alpha_a, alpha_b, alpha_c, rho_a, rho_b, beta, gamma
+                )
+            }
+        }
+    }
 }
 
 impl CS {
@@ -139,6 +177,12 @@ impl CS {
 impl Drop for CS {
     fn drop(&mut self) {
         unsafe { libsnarkwrap_dropcs(self.ptr) }
+    }
+}
+
+impl Drop for Keypair {
+    fn drop(&mut self) {
+        unsafe { libsnarkwrap_dropkeypair(self.ptr) }
     }
 }
 

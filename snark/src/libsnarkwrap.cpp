@@ -7,6 +7,7 @@
 #include "relations/arithmetic_programs/qap/qap.hpp"
 #include "reductions/r1cs_to_qap/r1cs_to_qap.hpp"
 #include "relations/constraint_satisfaction_problems/r1cs/examples/r1cs_examples.hpp"
+#include "zk_proof_systems/ppzksnark/r1cs_ppzksnark/r1cs_ppzksnark.hpp"
 
 using namespace std;
 using namespace libsnark;
@@ -205,6 +206,11 @@ extern "C" void libsnarkwrap_dropcs(r1cs_constraint_system<curve_Fr> *cs)
     delete cs;
 }
 
+extern "C" void libsnarkwrap_dropkeypair(r1cs_ppzksnark_keypair<curve_pp> *kp)
+{
+    delete kp;
+}
+
 extern "C" void libsnarkwrap_eval(
     const r1cs_constraint_system<curve_Fr> *cs,
     const curve_G1 *lc1,
@@ -243,6 +249,33 @@ extern "C" void libsnarkwrap_eval(
 }
 
 // Comparison tests
+
+extern "C" void* libsnarkwrap_test_keygen(
+    const r1cs_constraint_system<curve_Fr> *cs,
+    const curve_Fr *tau,
+    const curve_Fr *alpha_A,
+    const curve_Fr *alpha_B,
+    const curve_Fr *alpha_C,
+    const curve_Fr *rho_A,
+    const curve_Fr *rho_B,
+    const curve_Fr *beta,
+    const curve_Fr *gamma
+)
+{
+    return new r1cs_ppzksnark_keypair<curve_pp>(
+        r1cs_ppzksnark_generator<curve_pp>(
+            *cs,
+            *tau,
+            *alpha_A,
+            *alpha_B,
+            *alpha_C,
+            *rho_A,
+            *rho_B,
+            *beta,
+            *gamma
+        )
+    );
+}
 
 extern "C" bool libsnarkwrap_test_compare_tau(
     const curve_G1 *inputs1,

@@ -158,6 +158,20 @@ impl Secrets {
 
         tmp
     }
+
+    fn keypair(&self, cs: &CS) -> Keypair {
+        Keypair::generate(
+            cs,
+            &self.tau,
+            &self.alpha_a,
+            &self.alpha_b,
+            &self.alpha_c,
+            &self.rho_a,
+            &self.rho_b,
+            &self.beta,
+            &self.gamma
+        )
+    }
 }
 
 struct Player {
@@ -556,6 +570,8 @@ fn implthing() {
         vk_beta_gamma_two = new_vk_beta_gamma_two;
         pk_K = new_pk_K;
     }
+
+    // Compare against libsnark:
     
     let mut shared_secrets = Secrets::new_blank();
 
@@ -563,5 +579,5 @@ fn implthing() {
         player.test_multiply_secrets(&mut shared_secrets);
     }
 
-
+    let target_kp = shared_secrets.keypair(&cs);
 }
