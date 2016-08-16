@@ -509,21 +509,18 @@ fn implthing() {
         }
     }    
 
-/*
+
     // Phase 5: Random Coefficients, part II
     let mut vk_gamma = G2::one();
     let mut vk_beta_gamma = G1::one();
     let mut vk_beta_gamma_two = G2::one();
     // Initializing pk_K as pk_A + pk _B + pk_C
-    let mut pk_K = Vec::with_capacity(prev_g2.len());
+    let mut pk_K = Vec::with_capacity(pk_A.len());
 
-        for ((&g1, &g2), tp) in prev_g1.iter().zip(prev_g2.iter()).zip(TauPowers::new(self.secrets.tau)) {
-            new_g1.push(g1 * tp);
-            new_g2.push(g2 * tp);
-        }
+    for ((&a, &b), &c) in pk_A.iter().zip(pk_B_temp.iter()).zip(pk_C.iter()) {
+        pk_K.push(a+b+c);
+    }
 
-    let mut pk_K = at.clone();
-    
     for (i, player) in players.iter().enumerate() {
         match *player {
             Some(ref player) => {
@@ -561,5 +558,5 @@ fn implthing() {
             }
         }
     }
-*/    
+    
 }
