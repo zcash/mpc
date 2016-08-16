@@ -403,11 +403,9 @@ fn implthing() {
     let mut coordinator = Coordinator::new();
 
     // Phase 1: Commitments
-    let mut players = players.into_iter().map(|player| {
+    for player in &players {
         coordinator.receive_commitment(player.spairs_commitment());
-
-        Some(player)
-    }).collect::<Vec<_>>();
+    }
 
     // Phase 2: Random powers protocol
     //  Each player needs to output spairs
@@ -416,26 +414,19 @@ fn implthing() {
     let mut powers_of_tau_g2: Vec<G2> = (0..cs.d+1).map(|_| G2::one()).collect::<Vec<_>>();
 
     for (i, player) in players.iter().enumerate() {
-        match *player {
-            Some(ref player) => {
-                // Players reveal their spairs, which we check against their commitments
-                assert!(coordinator.check_commitment(i, player.spairs.clone()));
+        // Players reveal their spairs, which we check against their commitments
+        assert!(coordinator.check_commitment(i, player.spairs.clone()));
 
-                // Players compute the powers of tau given the previous player
-                let (new_g1, new_g2) = player.exponentiate_with_tau(
-                    &powers_of_tau_g1, &powers_of_tau_g2
-                );
+        // Players compute the powers of tau given the previous player
+        let (new_g1, new_g2) = player.exponentiate_with_tau(
+            &powers_of_tau_g1, &powers_of_tau_g2
+        );
 
-                // Coordinator checks the powers of tau were computed correctly.
-                assert!(coordinator.check_taupowers(&powers_of_tau_g1, &powers_of_tau_g2, &new_g1, &new_g2, i));
+        // Coordinator checks the powers of tau were computed correctly.
+        assert!(coordinator.check_taupowers(&powers_of_tau_g1, &powers_of_tau_g2, &new_g1, &new_g2, i));
 
-                powers_of_tau_g1 = new_g1;
-                powers_of_tau_g2 = new_g2;
-            },
-            None => {
-                // Player aborted before this round.
-            }
-        }
+        powers_of_tau_g1 = new_g1;
+        powers_of_tau_g2 = new_g2;
     }
 
     // Phase 3: Remote computation
@@ -458,76 +449,69 @@ fn implthing() {
     let mut pk_C_prime = ct.clone();
     
     for (i, player) in players.iter().enumerate() {
-        match *player {
-            Some(ref player) => {
-                let (
-                    new_vk_A,
-                    new_vk_B,
-                    new_vk_C,
-                    new_vk_Z,
-                    new_pk_A,
-                    new_pk_A_prime,
-                    new_pk_B,
-                    new_pk_B_temp,
-                    new_pk_B_prime,
-                    new_pk_C,
-                    new_pk_C_prime
-                ) = player.random_coeffs_part_one(
-                    &vk_A,
-                    &vk_B,
-                    &vk_C,
-                    &vk_Z,
-                    &pk_A,
-                    &pk_A_prime,
-                    &pk_B,
-                    &pk_B_temp,
-                    &pk_B_prime,
-                    &pk_C,
-                    &pk_C_prime
-                );
+        let (
+            new_vk_A,
+            new_vk_B,
+            new_vk_C,
+            new_vk_Z,
+            new_pk_A,
+            new_pk_A_prime,
+            new_pk_B,
+            new_pk_B_temp,
+            new_pk_B_prime,
+            new_pk_C,
+            new_pk_C_prime
+        ) = player.random_coeffs_part_one(
+            &vk_A,
+            &vk_B,
+            &vk_C,
+            &vk_Z,
+            &pk_A,
+            &pk_A_prime,
+            &pk_B,
+            &pk_B_temp,
+            &pk_B_prime,
+            &pk_C,
+            &pk_C_prime
+        );
 
-                assert!(coordinator.check_random_coeffs_part_one(
-                    i,
-                    &vk_A,
-                    &vk_B,
-                    &vk_C,
-                    &vk_Z,
-                    &pk_A,
-                    &pk_A_prime,
-                    &pk_B,
-                    &pk_B_temp,
-                    &pk_B_prime,
-                    &pk_C,
-                    &pk_C_prime,
-                    &new_vk_A,
-                    &new_vk_B,
-                    &new_vk_C,
-                    &new_vk_Z,
-                    &new_pk_A,
-                    &new_pk_A_prime,
-                    &new_pk_B,
-                    &new_pk_B_temp,
-                    &new_pk_B_prime,
-                    &new_pk_C,
-                    &new_pk_C_prime
-                ));
+        assert!(coordinator.check_random_coeffs_part_one(
+            i,
+            &vk_A,
+            &vk_B,
+            &vk_C,
+            &vk_Z,
+            &pk_A,
+            &pk_A_prime,
+            &pk_B,
+            &pk_B_temp,
+            &pk_B_prime,
+            &pk_C,
+            &pk_C_prime,
+            &new_vk_A,
+            &new_vk_B,
+            &new_vk_C,
+            &new_vk_Z,
+            &new_pk_A,
+            &new_pk_A_prime,
+            &new_pk_B,
+            &new_pk_B_temp,
+            &new_pk_B_prime,
+            &new_pk_C,
+            &new_pk_C_prime
+        ));
 
-                vk_A = new_vk_A;
-                vk_B = new_vk_B;
-                vk_C = new_vk_C;
-                vk_Z = new_vk_Z;
-                pk_A = new_pk_A;
-                pk_A_prime = new_pk_A_prime;
-                pk_B = new_pk_B;
-                pk_B_temp = new_pk_B_temp;
-                pk_B_prime = new_pk_B_prime;
-                pk_C = new_pk_C;
-                pk_C_prime = new_pk_C_prime;
-            },
-            None => {
-                // Player aborted before this round.
-            }
-        }
+        vk_A = new_vk_A;
+        vk_B = new_vk_B;
+        vk_C = new_vk_C;
+        vk_Z = new_vk_Z;
+        pk_A = new_pk_A;
+        pk_A_prime = new_pk_A_prime;
+        pk_B = new_pk_B;
+        pk_B_temp = new_pk_B_temp;
+        pk_B_prime = new_pk_B_prime;
+        pk_C = new_pk_C;
+        pk_C_prime = new_pk_C_prime;
     }
 
     // Phase 5: Random Coefficients, part II
@@ -543,55 +527,41 @@ fn implthing() {
     }
 
     for (i, player) in players.iter().enumerate() {
-        match *player {
-            Some(ref player) => {
-                let (
-                    new_vk_gamma,
-                    new_vk_beta_gamma_one,
-                    new_vk_beta_gamma_two,
-                    new_pk_K
-                ) = player.random_coeffs_part_two(
-                    &vk_gamma,
-                    &vk_beta_gamma_one,
-                    &vk_beta_gamma_two,
-                    &pk_K
-                );
+        let (
+            new_vk_gamma,
+            new_vk_beta_gamma_one,
+            new_vk_beta_gamma_two,
+            new_pk_K
+        ) = player.random_coeffs_part_two(
+            &vk_gamma,
+            &vk_beta_gamma_one,
+            &vk_beta_gamma_two,
+            &pk_K
+        );
 
-                assert!(coordinator.check_random_coeffs_part_two(
-                    i,
-                    &vk_gamma,
-                    &vk_beta_gamma_one,
-                    &vk_beta_gamma_two,
-                    &pk_K,
-                    &new_vk_gamma,
-                    &new_vk_beta_gamma_one,
-                    &new_vk_beta_gamma_two,
-                    &new_pk_K
-                ));
+        assert!(coordinator.check_random_coeffs_part_two(
+            i,
+            &vk_gamma,
+            &vk_beta_gamma_one,
+            &vk_beta_gamma_two,
+            &pk_K,
+            &new_vk_gamma,
+            &new_vk_beta_gamma_one,
+            &new_vk_beta_gamma_two,
+            &new_pk_K
+        ));
 
-                vk_gamma = new_vk_gamma;
-                vk_beta_gamma_one = new_vk_beta_gamma_one;
-                vk_beta_gamma_two = new_vk_beta_gamma_two;
-                pk_K = new_pk_K;
-            },
-            None => {
-                // Player aborted before this round.
-            }
-        }
+        vk_gamma = new_vk_gamma;
+        vk_beta_gamma_one = new_vk_beta_gamma_one;
+        vk_beta_gamma_two = new_vk_beta_gamma_two;
+        pk_K = new_pk_K;
     }
     
     let mut shared_secrets = Secrets::new_blank();
 
-    for p in &players {
-        match *p {
-            Some(ref p) => {
-                p.test_multiply_secrets(&mut shared_secrets);
-            },
-            None => {
-                unreachable!()
-            }
-        }
+    for player in &players {
+        player.test_multiply_secrets(&mut shared_secrets);
     }
 
-    
+
 }
