@@ -536,9 +536,17 @@ fn implthing() {
     // Initializing pk_K as pk_A + pk _B + pk_C
     let mut pk_K = Vec::with_capacity(pk_A.len());
 
-    for ((&a, &b), &c) in pk_A.iter().zip(pk_B_temp.iter()).zip(pk_C.iter()) {
+    for ((&a, &b), &c) in pk_A.iter().take(pk_A.len() - 1)
+                              .zip(pk_B_temp.iter().take(pk_B.len() - 1))
+                              .zip(pk_C.iter().take(pk_C.len() - 1))
+    {
         pk_K.push(a + b + c);
     }
+
+    // Perform Z extention as libsnark does.
+    pk_K.push(pk_A[pk_A.len() - 1]);
+    pk_K.push(pk_B_temp[pk_B_temp.len() - 1]);
+    pk_K.push(pk_C[pk_C.len() - 1]);
 
     for (i, player) in players.iter().enumerate() {
         let (
@@ -580,4 +588,6 @@ fn implthing() {
     }
 
     let target_kp = shared_secrets.keypair(&cs);
+
+    assert!(target_kp.compare(&pk_K));
 }

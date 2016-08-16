@@ -31,6 +31,11 @@ extern "C" {
         bt1: *mut G1,
         bt2: *mut G2,
         ct: *mut G1);
+    fn libsnarkwrap_test_compare_key(
+        kp: *const libc::c_void,
+        size_of_queries: libc::uint64_t,
+        k_query: *const G1
+    ) -> bool;
     fn libsnarkwrap_test_keygen(
         cs: *const libc::c_void,
         tau: *const Fr,
@@ -107,6 +112,17 @@ impl Keypair {
                     cs.ptr, tau, alpha_a, alpha_b, alpha_c, rho_a, rho_b, beta, gamma
                 )
             }
+        }
+    }
+
+    pub fn compare(&self, k_query: &[G1]) -> bool {
+
+        unsafe {
+            libsnarkwrap_test_compare_key(
+                self.ptr,
+                k_query.len() as u64,
+                &k_query[0]
+            )
         }
     }
 }

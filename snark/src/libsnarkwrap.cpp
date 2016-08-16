@@ -277,6 +277,23 @@ extern "C" void* libsnarkwrap_test_keygen(
     );
 }
 
+extern "C" bool libsnarkwrap_test_compare_key(
+    const r1cs_ppzksnark_keypair<curve_pp> *kp,
+    uint64_t size_of_queries,
+    const curve_G1 *k_query
+)
+{
+    assert(kp->pk.K_query.size() == size_of_queries);
+
+    bool ret = true;
+
+    for (size_t i = 0; i < size_of_queries; i++) {
+        ret &= (k_query[i] == kp->pk.K_query[i]);
+    }
+
+    return ret;
+}
+
 extern "C" bool libsnarkwrap_test_compare_tau(
     const curve_G1 *inputs1,
     const curve_G2 *inputs2,
