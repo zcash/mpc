@@ -210,6 +210,25 @@ impl Player {
             mul_all_by(pk_C_prime, (self.secrets.rho_a * self.secrets.rho_b * self.secrets.alpha_c))
         )
     }
+
+    fn random_coeffs_part_two(
+        &self,
+        vk_gamma: &G2,
+        vk_beta_gamma: &G1,
+        vk_beta_gamma_two: &G2,
+        pk_K: &[G1]) -> (G2, G1, G2, Vec<G1>)
+    {
+        fn mul_all_by<G: Group>(v: &[G], c: Fr) -> Vec<G> {
+            v.iter().map(|g| *g * c).collect()
+        }
+
+        (
+            *vk_gamma * self.secrets.gamma,
+            *vk_beta_gamma * self.secrets.beta * self.secrets.gamma,
+            *vk_beta_gamma_two * self.secrets.beta * self.secrets.gamma,
+            mul_all_by(pk_K, self.secrets.beta)
+        )
+    }
 }
 
 struct Coordinator {
@@ -473,6 +492,68 @@ fn implthing() {
             }
         }
     }    
+/*
+    // Phase 5: Random Coefficients, part II
+    let mut vk_gamma = G2::one();
+    let mut vk_beta_gamma = G1::one();
+    let mut vk_beta_gamma_two = G2::one();
+    let mut pk_K = kt.clone();
+    
+    for (i, player) in players.iter().enumerate() {
+        match *player {
+            Some(ref player) => {
+                let (
+                    new_vk_gamma,
+                    new_vk_beta_gamma,
+                    new_vk_beta_gamma_two,
+                    new_pk_K
+                ) = player.random_coeffs_part_two(
+                    &vk_gamma,
+                    &vk_beta_gamma,
+                    &vk_beta_gamma_two,
+                    &pk_K
+                );
 
+                assert!(coordinator.check_random_coeffs_part_two(
+                    i,
+                    &vk_A,
+                    &vk_B,
+                    &vk_C,
+                    &vk_Z,
+                    &pk_A,
+                    &pk_A_prime,
+                    &pk_B,
+                    &pk_B_prime,
+                    &pk_C,
+                    &pk_C_prime,
+                    &new_vk_A,
+                    &new_vk_B,
+                    &new_vk_C,
+                    &new_vk_Z,
+                    &new_pk_A,
+                    &new_pk_A_prime,
+                    &new_pk_B,
+                    &new_pk_B_prime,
+                    &new_pk_C,
+                    &new_pk_C_prime
+                ));
+
+                vk_A = new_vk_A;
+                vk_B = new_vk_B;
+                vk_C = new_vk_C;
+                vk_Z = new_vk_Z;
+                pk_A = new_pk_A;
+                pk_A_prime = new_pk_A_prime;
+                pk_B = new_pk_B;
+                pk_B_prime = new_pk_B_prime;
+                pk_C = new_pk_C;
+                pk_C_prime = new_pk_C_prime;
+            },
+            None => {
+                // Player aborted before this round.
+            }
+        }
+    }
+*/    
     
 }
