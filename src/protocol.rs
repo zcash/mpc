@@ -59,6 +59,10 @@ impl Spairs {
         Spair::new(&self.f1, &self.f1pA).unwrap()
     }
 
+    fn rho_b(&self) -> Spair<G2> {
+        Spair::new(&self.f1pA, &self.f1pApB).unwrap()
+    }
+
     fn alpha_a_rho_a(&self) -> Spair<G2> {
         Spair::new(&self.f1, &self.f1pAaA).unwrap()
     }
@@ -189,9 +193,10 @@ impl Player {
         pk_A: &[G1],
         pk_A_prime: &[G1],
         pk_B: &[G2],
+        pk_B_temp: &[G1],
         pk_B_prime: &[G1],
         pk_C: &[G1],
-        pk_C_prime: &[G1]) -> (G2, G1, G2, G2, Vec<G1>, Vec<G1>, Vec<G2>, Vec<G1>, Vec<G1>, Vec<G1>)
+        pk_C_prime: &[G1]) -> (G2, G1, G2, G2, Vec<G1>, Vec<G1>, Vec<G2>, Vec<G1>, Vec<G1>, Vec<G1>, Vec<G1>)
     {
         fn mul_all_by<G: Group>(v: &[G], c: Fr) -> Vec<G> {
             v.iter().map(|g| *g * c).collect()
@@ -205,6 +210,7 @@ impl Player {
             mul_all_by(pk_A, self.secrets.rho_a),
             mul_all_by(pk_A_prime, (self.secrets.rho_a * self.secrets.alpha_a)),
             mul_all_by(pk_B, self.secrets.rho_b),
+            mul_all_by(pk_B_temp, self.secrets.rho_b),
             mul_all_by(pk_B_prime, (self.secrets.rho_b * self.secrets.alpha_b)),
             mul_all_by(pk_C, (self.secrets.rho_a * self.secrets.rho_b)),
             mul_all_by(pk_C_prime, (self.secrets.rho_a * self.secrets.rho_b * self.secrets.alpha_c))
@@ -291,6 +297,7 @@ impl Coordinator {
         prev_pk_A: &[G1],
         prev_pk_A_prime: &[G1],
         prev_pk_B: &[G2],
+        prev_pk_B_temp: &[G1],
         prev_pk_B_prime: &[G1],
         prev_pk_C: &[G1],
         prev_pk_C_prime: &[G1],
@@ -301,6 +308,7 @@ impl Coordinator {
         cur_pk_A: &[G1],
         cur_pk_A_prime: &[G1],
         cur_pk_B: &[G2],
+        cur_pk_B_temp: &[G1],
         cur_pk_B_prime: &[G1],
         cur_pk_C: &[G1],
         cur_pk_C_prime: &[G1]
@@ -313,6 +321,7 @@ impl Coordinator {
         prev_pk_A.len() == cur_pk_A.len() &&
         prev_pk_A_prime.len() == cur_pk_A_prime.len() &&
         prev_pk_B.len() == cur_pk_B.len() &&
+        prev_pk_B_temp.len() == cur_pk_B_temp.len() &&
         prev_pk_B_prime.len() == cur_pk_B_prime.len() &&
         prev_pk_C.len() == cur_pk_C.len() &&
         prev_pk_C_prime.len() == cur_pk_C_prime.len() &&
@@ -323,6 +332,7 @@ impl Coordinator {
         check(prev_pk_A.iter().zip(cur_pk_A.iter()), &self.spairs[&player].rho_a()) &&
         check(prev_pk_A_prime.iter().zip(cur_pk_A_prime.iter()), &self.spairs[&player].alpha_a_rho_a()) &&
         check(prev_pk_B.iter().zip(cur_pk_B.iter()), &self.spairs[&player].pB) &&
+        check(prev_pk_B_temp.iter().zip(cur_pk_B_temp.iter()), &self.spairs[&player].rho_b()) &&
         check(prev_pk_B_prime.iter().zip(cur_pk_B_prime.iter()), &self.spairs[&player].alpha_b_rho_b()) &&
         check(prev_pk_C.iter().zip(cur_pk_C.iter()), &self.spairs[&player].rho_a_rho_b()) &&
         check(prev_pk_C_prime.iter().zip(cur_pk_C_prime.iter()), &self.spairs[&player].alpha_c_rho_a_rho_b())
@@ -346,7 +356,7 @@ fn check_random_coeffs_part_two(
         !prev_vk_beta_gamma.is_zero() && !cur_vk_beta_gamma.is_zero() &&
         !prev_vk_beta_gamma_two.is_zero() && !cur_vk_beta_gamma_two.is_zero() &&
         prev_pk_K.len() == cur_pk_K.len() &&
-            same_power(&Spair::new(prev_vk_gamma, cur_vk_gamma).unwrap(), &self.spairs[&player].gamma) &&
+        same_power(&Spair::new(prev_vk_gamma, cur_vk_gamma).unwrap(), &self.spairs[&player].gamma) &&
         same_power(&Spair::new(prev_vk_beta_gamma, cur_vk_beta_gamma).unwrap(), &self.spairs[&player].beta_gamma()) &&
         same_power(&Spair::new(prev_vk_beta_gamma_two, cur_vk_beta_gamma_two).unwrap(), &Spair::new(prev_vk_beta_gamma, cur_vk_beta_gamma).unwrap()) &&
         check(prev_pk_K.iter().zip(cur_pk_K.iter()), &self.spairs[&player].beta())
@@ -421,6 +431,7 @@ fn implthing() {
     let mut pk_A = at.clone();
     let mut pk_A_prime = at.clone();
     let mut pk_B = bt2.clone();
+    let mut pk_B_temp = bt1.clone(); // Compute pk_B in G1 although not part of the key to use for pk_K later
     let mut pk_B_prime = bt1.clone();
     let mut pk_C = ct.clone();
     let mut pk_C_prime = ct.clone();
@@ -436,6 +447,7 @@ fn implthing() {
                     new_pk_A,
                     new_pk_A_prime,
                     new_pk_B,
+                    new_pk_B_temp,
                     new_pk_B_prime,
                     new_pk_C,
                     new_pk_C_prime
@@ -447,6 +459,7 @@ fn implthing() {
                     &pk_A,
                     &pk_A_prime,
                     &pk_B,
+                    &pk_B_temp,
                     &pk_B_prime,
                     &pk_C,
                     &pk_C_prime
@@ -461,6 +474,7 @@ fn implthing() {
                     &pk_A,
                     &pk_A_prime,
                     &pk_B,
+                    &pk_B_temp,
                     &pk_B_prime,
                     &pk_C,
                     &pk_C_prime,
@@ -471,6 +485,7 @@ fn implthing() {
                     &new_pk_A,
                     &new_pk_A_prime,
                     &new_pk_B,
+                    &new_pk_B_temp,
                     &new_pk_B_prime,
                     &new_pk_C,
                     &new_pk_C_prime
@@ -483,6 +498,7 @@ fn implthing() {
                 pk_A = new_pk_A;
                 pk_A_prime = new_pk_A_prime;
                 pk_B = new_pk_B;
+                pk_B_temp = new_pk_B_temp;
                 pk_B_prime = new_pk_B_prime;
                 pk_C = new_pk_C;
                 pk_C_prime = new_pk_C_prime;
@@ -492,12 +508,21 @@ fn implthing() {
             }
         }
     }    
+
 /*
     // Phase 5: Random Coefficients, part II
     let mut vk_gamma = G2::one();
     let mut vk_beta_gamma = G1::one();
     let mut vk_beta_gamma_two = G2::one();
-    let mut pk_K = kt.clone();
+    // Initializing pk_K as pk_A + pk _B + pk_C
+    let mut pk_K = Vec::with_capacity(prev_g2.len());
+
+        for ((&g1, &g2), tp) in prev_g1.iter().zip(prev_g2.iter()).zip(TauPowers::new(self.secrets.tau)) {
+            new_g1.push(g1 * tp);
+            new_g2.push(g2 * tp);
+        }
+
+    let mut pk_K = at.clone();
     
     for (i, player) in players.iter().enumerate() {
         match *player {
@@ -516,38 +541,20 @@ fn implthing() {
 
                 assert!(coordinator.check_random_coeffs_part_two(
                     i,
-                    &vk_A,
-                    &vk_B,
-                    &vk_C,
-                    &vk_Z,
-                    &pk_A,
-                    &pk_A_prime,
-                    &pk_B,
-                    &pk_B_prime,
-                    &pk_C,
-                    &pk_C_prime,
-                    &new_vk_A,
-                    &new_vk_B,
-                    &new_vk_C,
-                    &new_vk_Z,
-                    &new_pk_A,
-                    &new_pk_A_prime,
-                    &new_pk_B,
-                    &new_pk_B_prime,
-                    &new_pk_C,
-                    &new_pk_C_prime
+                    &vk_gamma,
+                    &vk_beta_gamma,
+                    &vk_beta_gamma_two,
+                    &pk_K,
+                    &new_vk_gamma,
+                    &new_vk_beta_gamma,
+                    &new_vk_beta_gamma_two,
+                    &new_pk_K
                 ));
 
-                vk_A = new_vk_A;
-                vk_B = new_vk_B;
-                vk_C = new_vk_C;
-                vk_Z = new_vk_Z;
-                pk_A = new_pk_A;
-                pk_A_prime = new_pk_A_prime;
-                pk_B = new_pk_B;
-                pk_B_prime = new_pk_B_prime;
-                pk_C = new_pk_C;
-                pk_C_prime = new_pk_C_prime;
+                vk_gamma = new_vk_gamma;
+                vk_beta_gamma = new_vk_beta_gamma;
+                vk_beta_gamma_two = new_vk_beta_gamma_two;
+                pk_K = new_pk_K;
             },
             None => {
                 // Player aborted before this round.
@@ -555,5 +562,4 @@ fn implthing() {
         }
     }
 */    
-    
 }
