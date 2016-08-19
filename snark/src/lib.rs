@@ -18,7 +18,7 @@ pub use self::g2::G2;
 extern "C" {
     fn libsnarkwrap_init();
     fn libsnarkwrap_pairing(p: *const G1, q: *const G2) -> Gt;
-    fn libsnarkwrap_getcs(d: *mut libc::uint64_t, vars: *mut libc::uint64_t, omega: *mut Fr) -> *mut libc::c_void;
+    fn libsnarkwrap_getcs(d: *mut libc::uint64_t, vars: *mut libc::uint64_t, inputs: *mut libc::uint64_t, omega: *mut Fr) -> *mut libc::c_void;
     fn libsnarkwrap_dropcs(cs: *mut libc::c_void);
     fn libsnarkwrap_dropkeypair(kp: *mut libc::c_void);
     fn libsnarkwrap_eval(
@@ -31,10 +31,31 @@ extern "C" {
         bt1: *mut G1,
         bt2: *mut G2,
         ct: *mut G1);
-    fn libsnarkwrap_test_compare_key(
-        kp: *const libc::c_void,
-        size_of_queries: libc::uint64_t,
-        k_query: *const G1
+    fn libsnarkwrap_construct_keypair(
+        query_size: libc::uint64_t,
+        pk_a: *const G1,
+        pk_a_prime: *const G1,
+        pk_b: *const G2,
+        pk_b_prime: *const G1,
+        pk_c: *const G1,
+        pk_c_prime: *const G1,
+        k_size: libc::uint64_t,
+        pk_k: *const G1,
+        h_size: libc::uint64_t,
+        pk_h: *const G1,
+        vk_a: *const G2,
+        vk_b: *const G1,
+        vk_c: *const G2,
+        vk_gamma: *const G2,
+        vk_beta_gamma_1: *const G1,
+        vk_beta_gamma_2: *const G2,
+        vk_z: *const G2,
+        num_inputs: libc::uint64_t
+    ) -> *mut libc::c_void;
+
+    fn libsnarkwrap_keypair_eq(
+        kp1: *const libc::c_void,
+        kp2: *const libc::c_void,
     ) -> bool;
     fn libsnarkwrap_test_keygen(
         cs: *const libc::c_void,
@@ -87,6 +108,7 @@ pub struct CS {
     ptr: *mut libc::c_void,
     pub d: usize,
     pub num_vars: usize,
+    pub num_inputs: usize,
     pub omega: Fr
 }
 
@@ -94,7 +116,67 @@ pub struct Keypair {
     ptr: *mut libc::c_void
 }
 
+impl PartialEq for Keypair {
+    fn eq(&self, other: &Keypair) -> bool {
+        unsafe { libsnarkwrap_keypair_eq(
+            self.ptr, other.ptr
+        ) }
+    }
+}
+
 impl Keypair {
+    pub fn from(
+        cs: &CS,
+        pk_a: &[G1],
+        pk_a_prime: &[G1],
+        pk_b: &[G2],
+        pk_b_prime: &[G1],
+        pk_c: &[G1],
+        pk_c_prime: &[G1],
+        pk_k: &[G1],
+        pk_h: &[G1],
+        vk_a: &G2,
+        vk_b: &G1,
+        vk_c: &G2,
+        vk_gamma: &G2,
+        vk_beta_gamma_1: &G1,
+        vk_beta_gamma_2: &G2,
+        vk_z: &G2
+    ) -> Keypair
+    {
+        assert_eq!(pk_a.len(), pk_a_prime.len());
+        assert_eq!(pk_a.len(), pk_b.len());
+        assert_eq!(pk_a.len(), pk_b_prime.len());
+        assert_eq!(pk_a.len(), pk_c.len());
+        assert_eq!(pk_a.len(), pk_c_prime.len());
+
+        Keypair {
+            ptr: unsafe {
+                libsnarkwrap_construct_keypair(
+                    pk_a.len() as u64,
+                    &pk_a[0],
+                    &pk_a_prime[0],
+                    &pk_b[0],
+                    &pk_b_prime[0],
+                    &pk_c[0],
+                    &pk_c_prime[0],
+                    pk_k.len() as u64,
+                    &pk_k[0],
+                    pk_h.len() as u64,
+                    &pk_h[0],
+                    vk_a,
+                    vk_b,
+                    vk_c,
+                    vk_gamma,
+                    vk_beta_gamma_1,
+                    vk_beta_gamma_2,
+                    vk_z,
+                    cs.num_inputs as u64
+                )
+            }
+        }
+    }
+
     pub fn generate(
         cs: &CS,
         tau: &Fr,
@@ -114,30 +196,21 @@ impl Keypair {
             }
         }
     }
-
-    pub fn compare(&self, k_query: &[G1]) -> bool {
-
-        unsafe {
-            libsnarkwrap_test_compare_key(
-                self.ptr,
-                k_query.len() as u64,
-                &k_query[0]
-            )
-        }
-    }
 }
 
 impl CS {
     pub fn dummy() -> Self {
         let mut d = 0;
         let mut vars = 0;
+        let mut num_inputs = 0;
         let mut o = Fr::zero();
 
-        let cs = unsafe { libsnarkwrap_getcs(&mut d, &mut vars, &mut o) };
+        let cs = unsafe { libsnarkwrap_getcs(&mut d, &mut vars, &mut num_inputs, &mut o) };
 
         CS {
             ptr: cs,
             num_vars: vars as usize,
+            num_inputs: num_inputs as usize,
             d: d as usize,
             omega: o
         }

@@ -579,15 +579,35 @@ fn implthing() {
         pk_K = new_pk_K;
     }
 
+    let produced_kp = Keypair::from(
+        &cs,
+        &pk_A,
+        &pk_A_prime,
+        &pk_B,
+        &pk_B_prime,
+        &pk_C,
+        &pk_C_prime,
+        &pk_K,
+        &powers_of_tau_g1,
+        &vk_A,
+        &vk_B,
+        &vk_C,
+        &vk_gamma,
+        &vk_beta_gamma_one,
+        &vk_beta_gamma_two,
+        &vk_Z
+    );
+
     // Compare against libsnark:
-    
-    let mut shared_secrets = Secrets::new_blank();
+    {
+        let mut shared_secrets = Secrets::new_blank();
 
-    for player in &players {
-        player.test_multiply_secrets(&mut shared_secrets);
+        for player in &players {
+            player.test_multiply_secrets(&mut shared_secrets);
+        }
+
+        let target_kp = shared_secrets.keypair(&cs);
+
+        assert!(produced_kp == target_kp);
     }
-
-    let target_kp = shared_secrets.keypair(&cs);
-
-    assert!(target_kp.compare(&pk_K));
 }
