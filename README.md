@@ -21,5 +21,5 @@ conditions.
 ## Authors
 
 * [Sean Bowe](https://github.com/ebfull)
-* Ariel Gabizon
-* Matthew Green
+* [Ariel Gabizon](https://github.com/arielgabizon)
+* [Matthew Green](https://isi.jhu.edu/~mgreen/)
