@@ -360,7 +360,22 @@ extern "C" bool libsnarkwrap_keypair_eq(
     const r1cs_ppzksnark_keypair<curve_pp> *kp2
 )
 {
-    return (kp1->vk == kp2->vk) && (kp1->pk == kp2->pk);
+    std::string first_key;
+    std::string second_key;
+    {
+        std::stringstream ss;
+        ss << kp1->vk;
+        ss << kp1->pk;
+        first_key = ss.str();
+    }
+    {
+        std::stringstream ss;
+        ss << kp2->vk;
+        ss << kp2->pk;
+        second_key = ss.str();
+    }
+
+    return first_key == second_key;
 }
 
 extern "C" bool libsnarkwrap_test_compare_tau(
