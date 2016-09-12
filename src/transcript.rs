@@ -1,7 +1,6 @@
 use bn::*;
 use spairs::*;
 use snark::*;
-use taupowers::*;
 use qap::*;
 use rand::Rng;
 

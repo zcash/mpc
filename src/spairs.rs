@@ -4,7 +4,7 @@ use snark::*;
 use rustc_serialize::{Encodable, Encoder, Decodable, Decoder};
 use sequences::*;
 use multicore::*;
-use taupowers::*;
+use crossbeam;
 
 pub type BlakeHash = [u8; 32];
 
@@ -117,13 +117,26 @@ impl Secrets {
         }
     }
 
-    // TODO: use windowing method to make this more efficient
     pub fn taupowers(&self, g1: &mut [G1], g2: &mut [G2])
     {
-        for ((g1, g2), tp) in g1.iter_mut().zip(g2.iter_mut()).zip(TauPowers::new(self.tau)) {
-            *g1 = *g1 * tp;
-            *g2 = *g2 * tp;
-        }
+        assert_eq!(g1.len(), g2.len());
+
+        crossbeam::scope(|scope| {
+            let window_size = g1.len() / THREADS;
+            let mut j = 0;
+            for i in g1.chunks_mut(window_size).zip(g2.chunks_mut(window_size)) {
+                scope.spawn(move || {
+                    let mut c = self.tau.pow(Fr::from_str(&format!("{}", window_size * j)).unwrap());
+                    for (g1, g2) in i.0.iter_mut().zip(i.1.iter_mut()) {
+                        *g1 = *g1 * c;
+                        *g2 = *g2 * c;
+                        c = c * self.tau;
+                    }
+                });
+
+                j += 1;
+            }
+        });
     }
 
     pub fn stage1(&self, v: &mut Stage1Values)
@@ -132,7 +145,6 @@ impl Secrets {
         v.vk_b = v.vk_b * self.alpha_b;
         v.vk_c = v.vk_c * self.alpha_c;
         v.vk_z = v.vk_z * (self.rho_a * self.rho_b);
-        // Contribute to proving key
         mul_all_by(&mut v.pk_a, self.rho_a);
         mul_all_by(&mut v.pk_a_prime, (self.rho_a * self.alpha_a));
         mul_all_by(&mut v.pk_b, self.rho_b);
