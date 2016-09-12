@@ -11,4 +11,7 @@ readme = "README.md"
 
 [dependencies]
 snark = { path = "./snark/" }
+bn = "0.2.2"
 crossbeam = "0.2.9"
+rand = "0.3.14"
+rustc-serialize = "~0.3.19"

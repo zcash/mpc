@@ -1,3 +1,4 @@
+use bn::*;
 use snark::*;
 use crossbeam;
 
@@ -6,7 +7,7 @@ use crossbeam;
 /// Extends with Z(tau) as (effectively) done in libsnark.
 pub fn evaluate_qap(g1_powers: &[G1], g2_powers: &[G2], cs: &CS) -> (Vec<G1>, Vec<G1>, Vec<G2>, Vec<G1>)
 {
-    assert_eq!(g1_powers.len(), g2_powers.len());
+    assert_eq!(g1_powers.len(), cs.d+1);
     assert_eq!(g2_powers.len(), cs.d+1);
 
     let lc1 = lagrange_coeffs(&g1_powers[0..cs.d], cs.omega);
@@ -25,7 +26,7 @@ pub fn evaluate_qap(g1_powers: &[G1], g2_powers: &[G2], cs: &CS) -> (Vec<G1>, Ve
 
 fn evaluate_qap_polynomials(lc1: &[G1], lc2: &[G2], cs: &CS) -> (Vec<G1>, Vec<G1>, Vec<G2>, Vec<G1>)
 {
-    assert_eq!(lc1.len(), lc2.len());
+    assert_eq!(lc1.len(), cs.d);
     assert_eq!(lc2.len(), cs.d);
 
     let mut at = (0..cs.num_vars).map(|_| G1::zero()).collect::<Vec<_>>();
@@ -40,10 +41,11 @@ fn evaluate_qap_polynomials(lc1: &[G1], lc2: &[G2], cs: &CS) -> (Vec<G1>, Vec<G1
 
 fn lagrange_coeffs<G: Group>(v: &[G], omega: Fr) -> Vec<G>
 {
+    assert!(v.len() >= 2);
     assert_eq!((v.len() / 2) * 2, v.len());
     const THREADS: usize = 8;
 
-    let overd = Fr::from_str(&format!("{}", v.len())).inverse();
+    let overd = Fr::from_str(&format!("{}", v.len())).unwrap().inverse().unwrap();
     let mut tmp = fft(v, omega, THREADS);
     tmp.reverse(); // coefficients are in reverse
 
@@ -112,57 +114,52 @@ fn fft<G: Group>(v: &[G], omega: Fr, threads: usize) -> Vec<G>
     }
 }
 
-#[cfg(test)]
-mod test {
-    use super::{lagrange_coeffs, evaluate_qap_polynomials};
-    use snark::*;
+#[test]
+fn compare_to_libsnark() {
     use taupowers::*;
 
-    #[test]
-    fn compare_to_libsnark() {
-        initialize();
+    let rng = &mut ::rand::thread_rng();
 
-        // Get the QAP degree and omega (for FFT evaluation)
-        let cs = CS::dummy();
+    // Get the QAP degree and omega (for FFT evaluation)
+    let cs = CS::dummy();
 
-        // Sample a random tau
-        let tau = Fr::random();
+    // Sample a random tau
+    let tau = Fr::random(rng);
 
-        // Generate powers of tau in G1, from 0 to d exclusive of d
-        let powers_of_tau_g1 = TauPowers::new(tau).take(cs.d).map(|e| G1::one() * e).collect::<Vec<_>>();
-        // Generate powers of tau in G2, from 0 to d exclusive of d
-        let powers_of_tau_g2 = TauPowers::new(tau).take(cs.d).map(|e| G2::one() * e).collect::<Vec<_>>();
+    // Generate powers of tau in G1, from 0 to d exclusive of d
+    let powers_of_tau_g1 = TauPowers::new(tau).take(cs.d).map(|e| G1::one() * e).collect::<Vec<_>>();
+    // Generate powers of tau in G2, from 0 to d exclusive of d
+    let powers_of_tau_g2 = TauPowers::new(tau).take(cs.d).map(|e| G2::one() * e).collect::<Vec<_>>();
 
-        // Perform FFT to compute lagrange coeffs in G1/G2
-        let lc1 = lagrange_coeffs(&powers_of_tau_g1, cs.omega);
-        let lc2 = lagrange_coeffs(&powers_of_tau_g2, cs.omega);
+    // Perform FFT to compute lagrange coeffs in G1/G2
+    let lc1 = lagrange_coeffs(&powers_of_tau_g1, cs.omega);
+    let lc2 = lagrange_coeffs(&powers_of_tau_g2, cs.omega);
 
-        {
-            // Perform G1 FFT with wrong omega
-            let lc1 = lagrange_coeffs(&powers_of_tau_g1, Fr::random());
-            assert!(!cs.test_compare_tau(&lc1, &lc2, &tau));
-        }
-        {
-            // Perform G2 FFT with wrong omega
-            let lc2 = lagrange_coeffs(&powers_of_tau_g2, Fr::random());
-            assert!(!cs.test_compare_tau(&lc1, &lc2, &tau));
-        }
-
-        // Compare against libsnark
-        assert!(cs.test_compare_tau(&lc1, &lc2, &tau));
-
-        // Wrong tau
-        assert!(!cs.test_compare_tau(&lc1, &lc2, &Fr::random()));
-
-        let (at, bt1, bt2, ct) = evaluate_qap_polynomials(&lc1, &lc2, &cs);
-
-        // Compare evaluation with libsnark
-        assert!(cs.test_eval(&tau, &at, &bt1, &bt2, &ct));
-
-        // Wrong tau
-        assert!(!cs.test_eval(&Fr::random(), &at, &bt1, &bt2, &ct));
-
-        // Wrong polynomials
-        assert!(!cs.test_eval(&Fr::random(), &bt1, &bt1, &bt2, &ct));
+    {
+        // Perform G1 FFT with wrong omega
+        let lc1 = lagrange_coeffs(&powers_of_tau_g1, Fr::random(rng));
+        assert!(!cs.test_compare_tau(&lc1, &lc2, &tau));
     }
+    {
+        // Perform G2 FFT with wrong omega
+        let lc2 = lagrange_coeffs(&powers_of_tau_g2, Fr::random(rng));
+        assert!(!cs.test_compare_tau(&lc1, &lc2, &tau));
+    }
+
+    // Compare against libsnark
+    assert!(cs.test_compare_tau(&lc1, &lc2, &tau));
+
+    // Wrong tau
+    assert!(!cs.test_compare_tau(&lc1, &lc2, &Fr::random(rng)));
+
+    let (at, bt1, bt2, ct) = evaluate_qap_polynomials(&lc1, &lc2, &cs);
+
+    // Compare evaluation with libsnark
+    assert!(cs.test_eval(&tau, &at, &bt1, &bt2, &ct));
+
+    // Wrong tau
+    assert!(!cs.test_eval(&Fr::random(rng), &at, &bt1, &bt2, &ct));
+
+    // Wrong polynomials
+    assert!(!cs.test_eval(&Fr::random(rng), &bt1, &bt1, &bt2, &ct));
 }
