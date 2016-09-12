@@ -5,6 +5,7 @@ extern crate crossbeam;
 extern crate rustc_serialize;
 
 mod taupowers;
+mod multicore;
 mod sequences;
 mod qap;
 mod spairs;

@@ -1,6 +1,7 @@
 use bn::*;
 use snark::*;
 use crossbeam;
+use multicore::*;
 
 /// Evaluates the QAP A, B and C polynomials at tau given the powers of tau.
 /// Converts the powers of tau in G1 and G2 into the lagrange basis with an FFT
@@ -43,21 +44,12 @@ fn lagrange_coeffs<G: Group>(v: &[G], omega: Fr) -> Vec<G>
 {
     assert!(v.len() >= 2);
     assert_eq!((v.len() / 2) * 2, v.len());
-    const THREADS: usize = 8;
 
     let overd = Fr::from_str(&format!("{}", v.len())).unwrap().inverse().unwrap();
     let mut tmp = fft(v, omega, THREADS);
     tmp.reverse(); // coefficients are in reverse
 
-    crossbeam::scope(|scope| {
-        for i in tmp.chunks_mut(v.len() / THREADS) {
-            scope.spawn(move || {
-                for i in i {
-                    *i = *i * overd;
-                }
-            });
-        }
-    });
+    mul_all_by(&mut tmp, overd);
 
     tmp
 }

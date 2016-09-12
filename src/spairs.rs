@@ -3,16 +3,10 @@ use rand::Rng;
 use snark::*;
 use rustc_serialize::{Encodable, Encoder, Decodable, Decoder};
 use sequences::*;
+use multicore::*;
 use taupowers::*;
 
 pub type BlakeHash = [u8; 32];
-
-// TODO: make more efficient using windowing
-fn mul_all_by<G: Group>(v: &mut [G], c: Fr) {
-    for g in v {
-        *g = *g * c;
-    }
-}
 
 #[derive(Clone)]
 pub struct Stage1Values {
