@@ -41,47 +41,6 @@ struct RandomCoeffStage2 {
     curplayer: usize
 }
 
-#[derive(Clone)]
-struct Stage1Values {
-    vk_a: G2,
-    vk_b: G1,
-    vk_c: G2,
-    vk_z: G2,
-    pk_a: Vec<G1>,
-    pk_a_prime: Vec<G1>,
-    pk_b: Vec<G2>,
-    pk_b_temp: Vec<G1>, // compute pk_B in G1 for K query
-    pk_b_prime: Vec<G1>,
-    pk_c: Vec<G1>,
-    pk_c_prime: Vec<G1>
-}
-
-#[derive(Clone)]
-struct Stage2Values {
-    vk_gamma: G2,
-    vk_beta_gamma_one: G1,
-    vk_beta_gamma_two: G2,
-    pk_k: Vec<G1>
-}
-
-impl Stage1Values {
-    fn new(at: &Vec<G1>, bt1: &Vec<G1>, bt2: &Vec<G2>, ct: &Vec<G1>) -> Self {
-        Stage1Values {
-            vk_a: G2::one(),
-            vk_b: G1::one(),
-            vk_c: G2::one(),
-            vk_z: bt2[bt2.len() - 1],
-            pk_a: at.clone(),
-            pk_a_prime: at.clone(),
-            pk_b: bt2.clone(),
-            pk_b_temp: bt1.clone(),
-            pk_b_prime: bt1.clone(),
-            pk_c: ct.clone(),
-            pk_c_prime: ct.clone()
-        }
-    }
-}
-
 impl State for ReceivingCommitments {
     type Metadata = Vec<BlakeHash>;
 }
@@ -392,12 +351,6 @@ impl<'a, R: Rng> Transcript<'a, R, RandomCoeffStage2> {
 
 #[test]
 fn mpc_simulation() {
-    fn mul_all_by<G: Group>(v: &mut [G], c: Fr) {
-        for g in v {
-            *g = *g * c;
-        }
-    }
-
     let cs = CS::dummy();
 
     let rng = &mut ::rand::thread_rng();
@@ -419,10 +372,7 @@ fn mpc_simulation() {
         let (mut cur_g1, mut cur_g2) = transcript.current();
 
         for (secrets, spairs) in secrets.iter().zip(spairs.iter()) {
-            for ((g1, g2), tp) in cur_g1.iter_mut().zip(cur_g2.iter_mut()).zip(TauPowers::new(secrets.tau)) {
-                *g1 = *g1 * tp;
-                *g2 = *g2 * tp;
-            }
+            secrets.taupowers(&mut cur_g1, &mut cur_g2);
 
             assert!(transcript.take(spairs.clone(), cur_g1.clone(), cur_g2.clone()));
         }
@@ -435,19 +385,7 @@ fn mpc_simulation() {
         let mut cur_values = transcript.current();
 
         for secrets in secrets.iter() {
-            // Contribute to verification key
-            cur_values.vk_a = cur_values.vk_a * secrets.alpha_a;
-            cur_values.vk_b = cur_values.vk_b * secrets.alpha_b;
-            cur_values.vk_c = cur_values.vk_c * secrets.alpha_c;
-            cur_values.vk_z = cur_values.vk_z * (secrets.rho_a * secrets.rho_b);
-            // Contribute to proving key
-            mul_all_by(&mut cur_values.pk_a, secrets.rho_a);
-            mul_all_by(&mut cur_values.pk_a_prime, (secrets.rho_a * secrets.alpha_a));
-            mul_all_by(&mut cur_values.pk_b, secrets.rho_b);
-            mul_all_by(&mut cur_values.pk_b_temp, secrets.rho_b);
-            mul_all_by(&mut cur_values.pk_b_prime, (secrets.rho_b * secrets.alpha_b));
-            mul_all_by(&mut cur_values.pk_c, (secrets.rho_a * secrets.rho_b));
-            mul_all_by(&mut cur_values.pk_c_prime, (secrets.rho_a * secrets.rho_b * secrets.alpha_c));
+            secrets.stage1(&mut cur_values);
 
             assert!(transcript.take(cur_values.clone()));
         }
@@ -460,11 +398,7 @@ fn mpc_simulation() {
         let mut cur_values = transcript.current();
 
         for secrets in secrets.iter() {
-            let betagamma = secrets.beta * secrets.gamma;
-            cur_values.vk_gamma = cur_values.vk_gamma * secrets.gamma;
-            cur_values.vk_beta_gamma_one = cur_values.vk_beta_gamma_one * betagamma;
-            cur_values.vk_beta_gamma_two = cur_values.vk_beta_gamma_two * betagamma;
-            mul_all_by(&mut cur_values.pk_k, secrets.beta);
+            secrets.stage2(&mut cur_values);
 
             assert!(transcript.take(cur_values.clone()));
         }
@@ -474,38 +408,13 @@ fn mpc_simulation() {
     let keypair = transcript.keypair();
 
     {
-        // Compare with libsnark
-        let mut tau = Fr::one();
-        let mut alpha_a = Fr::one();
-        let mut alpha_b = Fr::one();
-        let mut alpha_c = Fr::one();
-        let mut rho_a = Fr::one();
-        let mut rho_b = Fr::one();
-        let mut beta = Fr::one();
-        let mut gamma = Fr::one();
+        let mut acc = Secrets::new_blank();
 
-        for s in secrets {
-            tau = tau * s.tau;
-            alpha_a = alpha_a * s.alpha_a;
-            alpha_b = alpha_b * s.alpha_b;
-            alpha_c = alpha_c * s.alpha_c;
-            rho_a = rho_a * s.rho_a;
-            rho_b = rho_b * s.rho_b;
-            beta = beta * s.beta;
-            gamma = gamma * s.gamma;
+        for s in &secrets {
+            acc.multiply(s);
         }
 
-        let expected_keypair = Keypair::generate(
-            &cs,
-            &tau,
-            &alpha_a,
-            &alpha_b,
-            &alpha_c,
-            &rho_a,
-            &rho_b,
-            &beta,
-            &gamma
-        );
+        let expected_keypair = acc.keypair(&cs);
 
         assert!(expected_keypair == keypair);
     }

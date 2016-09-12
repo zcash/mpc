@@ -1,9 +1,59 @@
 use bn::*;
 use rand::Rng;
+use snark::*;
 use rustc_serialize::{Encodable, Encoder, Decodable, Decoder};
 use sequences::*;
+use taupowers::*;
 
 pub type BlakeHash = [u8; 32];
+
+// TODO: make more efficient using windowing
+fn mul_all_by<G: Group>(v: &mut [G], c: Fr) {
+    for g in v {
+        *g = *g * c;
+    }
+}
+
+#[derive(Clone)]
+pub struct Stage1Values {
+    pub vk_a: G2,
+    pub vk_b: G1,
+    pub vk_c: G2,
+    pub vk_z: G2,
+    pub pk_a: Vec<G1>,
+    pub pk_a_prime: Vec<G1>,
+    pub pk_b: Vec<G2>,
+    pub pk_b_temp: Vec<G1>, // compute pk_B in G1 for K query
+    pub pk_b_prime: Vec<G1>,
+    pub pk_c: Vec<G1>,
+    pub pk_c_prime: Vec<G1>
+}
+
+impl Stage1Values {
+    pub fn new(at: &Vec<G1>, bt1: &Vec<G1>, bt2: &Vec<G2>, ct: &Vec<G1>) -> Self {
+        Stage1Values {
+            vk_a: G2::one(),
+            vk_b: G1::one(),
+            vk_c: G2::one(),
+            vk_z: bt2[bt2.len() - 1],
+            pk_a: at.clone(),
+            pk_a_prime: at.clone(),
+            pk_b: bt2.clone(),
+            pk_b_temp: bt1.clone(),
+            pk_b_prime: bt1.clone(),
+            pk_c: ct.clone(),
+            pk_c_prime: ct.clone()
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct Stage2Values {
+    pub vk_gamma: G2,
+    pub vk_beta_gamma_one: G1,
+    pub vk_beta_gamma_two: G2,
+    pub pk_k: Vec<G1>
+}
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct Spair<G: Group> {
@@ -49,17 +99,89 @@ impl<G: Group> Spair<G> {
 }
 
 pub struct Secrets {
-    pub tau: Fr,
-    pub rho_a: Fr,
-    pub rho_b: Fr,
-    pub alpha_a: Fr,
-    pub alpha_b: Fr,
-    pub alpha_c: Fr,
-    pub beta: Fr,
-    pub gamma: Fr
+    tau: Fr,
+    rho_a: Fr,
+    rho_b: Fr,
+    alpha_a: Fr,
+    alpha_b: Fr,
+    alpha_c: Fr,
+    beta: Fr,
+    gamma: Fr
 }
 
 impl Secrets {
+    pub fn new_blank() -> Secrets {
+        Secrets {
+            tau: Fr::one(),
+            rho_a: Fr::one(),
+            rho_b: Fr::one(),
+            alpha_a: Fr::one(),
+            alpha_b: Fr::one(),
+            alpha_c: Fr::one(),
+            beta: Fr::one(),
+            gamma: Fr::one()
+        }
+    }
+
+    // TODO: use windowing method to make this more efficient
+    pub fn taupowers(&self, g1: &mut [G1], g2: &mut [G2])
+    {
+        for ((g1, g2), tp) in g1.iter_mut().zip(g2.iter_mut()).zip(TauPowers::new(self.tau)) {
+            *g1 = *g1 * tp;
+            *g2 = *g2 * tp;
+        }
+    }
+
+    pub fn stage1(&self, v: &mut Stage1Values)
+    {
+        v.vk_a = v.vk_a * self.alpha_a;
+        v.vk_b = v.vk_b * self.alpha_b;
+        v.vk_c = v.vk_c * self.alpha_c;
+        v.vk_z = v.vk_z * (self.rho_a * self.rho_b);
+        // Contribute to proving key
+        mul_all_by(&mut v.pk_a, self.rho_a);
+        mul_all_by(&mut v.pk_a_prime, (self.rho_a * self.alpha_a));
+        mul_all_by(&mut v.pk_b, self.rho_b);
+        mul_all_by(&mut v.pk_b_temp, self.rho_b);
+        mul_all_by(&mut v.pk_b_prime, (self.rho_b * self.alpha_b));
+        mul_all_by(&mut v.pk_c, (self.rho_a * self.rho_b));
+        mul_all_by(&mut v.pk_c_prime, (self.rho_a * self.rho_b * self.alpha_c));
+    }
+
+    pub fn stage2(&self, v: &mut Stage2Values)
+    {
+        let betagamma = self.beta * self.gamma;
+        v.vk_gamma = v.vk_gamma * self.gamma;
+        v.vk_beta_gamma_one = v.vk_beta_gamma_one * betagamma;
+        v.vk_beta_gamma_two = v.vk_beta_gamma_two * betagamma;
+        mul_all_by(&mut v.pk_k, self.beta);
+    }
+
+    pub fn multiply(&mut self, other: &Secrets) {
+        self.tau = self.tau * other.tau;
+        self.alpha_a = self.alpha_a * other.alpha_a;
+        self.alpha_b = self.alpha_b * other.alpha_b;
+        self.alpha_c = self.alpha_c * other.alpha_c;
+        self.rho_a = self.rho_a * other.rho_a;
+        self.rho_b = self.rho_b * other.rho_b;
+        self.beta = self.beta * other.beta;
+        self.gamma = self.gamma * other.gamma;
+    }
+
+    pub fn keypair(&self, cs: &CS) -> Keypair {
+        Keypair::generate(
+            cs,
+            &self.tau,
+            &self.alpha_a,
+            &self.alpha_b,
+            &self.alpha_c,
+            &self.rho_a,
+            &self.rho_b,
+            &self.beta,
+            &self.gamma
+        )
+    }
+
     pub fn new<R: Rng>(rng: &mut R) -> Secrets {
         Secrets {
             tau: Fr::random(rng),
