@@ -128,7 +128,7 @@ impl<'a, R: Rng> Transcript<'a, R, PowersOfTau> {
                     if spairs.hash() != commitment {
                         false
                     } else {
-                        self.meta.spairs.push(spairs.clone());
+                        self.meta.spairs.push(spairs);
 
                         true
                     }
