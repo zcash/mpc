@@ -15,3 +15,8 @@ bn = "0.2.2"
 crossbeam = "0.2.9"
 rand = "0.3.14"
 rustc-serialize = "~0.3.19"
+
+[dependencies.bincode]
+version = "0.6.0"
+default-features = false
+features = ["rustc-serialize"]

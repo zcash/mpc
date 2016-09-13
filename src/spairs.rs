@@ -8,7 +8,7 @@ use crossbeam;
 
 pub type BlakeHash = [u8; 32];
 
-#[derive(Clone)]
+#[derive(Clone, RustcEncodable, RustcDecodable)]
 pub struct Stage1Values {
     pub vk_a: G2,
     pub vk_b: G1,
@@ -41,7 +41,7 @@ impl Stage1Values {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, RustcEncodable, RustcDecodable)]
 pub struct Stage2Values {
     pub vk_gamma: G2,
     pub vk_beta_gamma_one: G1,

@@ -86,8 +86,8 @@ impl<'a, R: Rng> Transcript<'a, R, ReceivingCommitments> {
 }
 
 impl<'a, R: Rng> Transcript<'a, R, PowersOfTau> {
-    pub fn current(&self) -> (Vec<G1>, Vec<G2>) {
-        (self.meta.prev_g1.clone(), self.meta.prev_g2.clone())
+    pub fn current(&self) -> (&Vec<G1>, &Vec<G2>) {
+        (&self.meta.prev_g1, &self.meta.prev_g2)
     }
 
     pub fn take(
@@ -157,8 +157,8 @@ impl<'a, R: Rng> Transcript<'a, R, PowersOfTau> {
 }
 
 impl<'a, R: Rng> Transcript<'a, R, RandomCoeffStage1> {
-    pub fn current(&self) -> Stage1Values {
-        self.meta.values.clone()
+    pub fn current(&self) -> &Stage1Values {
+        &self.meta.values
     }
 
     pub fn take(
@@ -277,8 +277,8 @@ impl<'a, R: Rng> Transcript<'a, R, RandomCoeffStage1> {
 }
 
 impl<'a, R: Rng> Transcript<'a, R, RandomCoeffStage2> {
-    pub fn current(&self) -> Stage2Values {
-        self.meta.values.clone()
+    pub fn current(&self) -> &Stage2Values {
+        &self.meta.values
     }
 
     pub fn take(
@@ -360,12 +360,15 @@ fn mpc_simulation() {
 
     // Random powers protocol
     {
-        let (mut cur_g1, mut cur_g2) = transcript.current();
-
         for (secrets, spairs) in secrets.iter().zip(spairs.iter()) {
+            let (mut cur_g1, mut cur_g2) = {
+                let (cur_g1, cur_g2) = transcript.current();
+                (cur_g1.clone(), cur_g2.clone())
+            };
+
             secrets.taupowers(&mut cur_g1, &mut cur_g2);
 
-            assert!(transcript.take(spairs.clone(), cur_g1.clone(), cur_g2.clone()));
+            assert!(transcript.take(spairs.clone(), cur_g1, cur_g2));
         }
     }
 
@@ -373,12 +376,12 @@ fn mpc_simulation() {
 
     // Random coeff stage 1
     {
-        let mut cur_values = transcript.current();
-
         for secrets in secrets.iter() {
+            let mut cur_values = transcript.current().clone();
+
             secrets.stage1(&mut cur_values);
 
-            assert!(transcript.take(cur_values.clone()));
+            assert!(transcript.take(cur_values));
         }
     }
 
@@ -386,9 +389,9 @@ fn mpc_simulation() {
 
     // Random coeff stage 2
     {
-        let mut cur_values = transcript.current();
-
         for secrets in secrets.iter() {
+            let mut cur_values = transcript.current().clone();
+            
             secrets.stage2(&mut cur_values);
 
             assert!(transcript.take(cur_values.clone()));
