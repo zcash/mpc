@@ -4,15 +4,15 @@ use snark::*;
 use qap::*;
 use rand::Rng;
 
-trait State {
+pub trait State {
     type Metadata;
 }
 
 /// We're currently receiving commitments.
-struct ReceivingCommitments;
+pub struct ReceivingCommitments;
 
 /// We're performing the powers of tau.
-struct PowersOfTau {
+pub struct PowersOfTau {
     commitments: Box<Iterator<Item=BlakeHash>>,
     spairs: Vec<Spairs>,
     prev_g1: Vec<G1>,
@@ -20,19 +20,15 @@ struct PowersOfTau {
 }
 
 /// We're performing the first round of random coefficients.
-struct RandomCoeffStage1 {
+pub struct RandomCoeffStage1 {
     spairs: Vec<Spairs>,
     powers_of_tau_g1: Vec<G1>,
-    at: Vec<G1>,
-    bt1: Vec<G1>,
-    bt2: Vec<G2>,
-    ct: Vec<G1>,
     values: Stage1Values,
     curplayer: usize
 }
 
 /// We're performing the second round of random coefficients.
-struct RandomCoeffStage2 {
+pub struct RandomCoeffStage2 {
     spairs: Vec<Spairs>,
     powers_of_tau_g1: Vec<G1>,
     coeffs_1: Stage1Values,
@@ -56,14 +52,14 @@ impl State for RandomCoeffStage2 {
     type Metadata = Self;
 }
 
-struct Transcript<'a, R: Rng, S: State> {
+pub struct Transcript<'a, R: Rng, S: State> {
     meta: S::Metadata,
     cs: &'a CS,
     rng: R
 }
 
 impl<'a, R: Rng> Transcript<'a, R, ReceivingCommitments> {
-    fn new(rng: R, cs: &'a CS) -> Self {
+    pub fn new(rng: R, cs: &'a CS) -> Self {
         Transcript {
             meta: vec![],
             cs: cs,
@@ -71,11 +67,11 @@ impl<'a, R: Rng> Transcript<'a, R, ReceivingCommitments> {
         }
     }
 
-    fn take(&mut self, h: BlakeHash) {
+    pub fn take(&mut self, h: BlakeHash) {
         self.meta.push(h);
     }
 
-    fn next(self) -> Transcript<'a, R, PowersOfTau> {
+    pub fn next(self) -> Transcript<'a, R, PowersOfTau> {
         Transcript {
             meta: PowersOfTau {
                 commitments: Box::new(self.meta.into_iter()) as Box<Iterator<Item=BlakeHash>>,
@@ -90,11 +86,11 @@ impl<'a, R: Rng> Transcript<'a, R, ReceivingCommitments> {
 }
 
 impl<'a, R: Rng> Transcript<'a, R, PowersOfTau> {
-    fn current(&self) -> (Vec<G1>, Vec<G2>) {
+    pub fn current(&self) -> (Vec<G1>, Vec<G2>) {
         (self.meta.prev_g1.clone(), self.meta.prev_g2.clone())
     }
 
-    fn take(
+    pub fn take(
         &mut self,
         spairs: Spairs,
         g1: Vec<G1>,
@@ -140,7 +136,7 @@ impl<'a, R: Rng> Transcript<'a, R, PowersOfTau> {
         }
     }
 
-    fn next(self) -> Transcript<'a, R, RandomCoeffStage1> {
+    pub fn next(self) -> Transcript<'a, R, RandomCoeffStage1> {
         // evaluate QAP for the next round
         let (at, bt1, bt2, ct) = evaluate_qap(&self.meta.prev_g1, &self.meta.prev_g2, &self.cs);
 
@@ -151,10 +147,6 @@ impl<'a, R: Rng> Transcript<'a, R, PowersOfTau> {
             meta: RandomCoeffStage1 {
                 spairs: self.meta.spairs,
                 powers_of_tau_g1: self.meta.prev_g1,
-                at: at,
-                bt1: bt1,
-                bt2: bt2,
-                ct: ct,
                 values: values,
                 curplayer: 0
             },
@@ -165,11 +157,11 @@ impl<'a, R: Rng> Transcript<'a, R, PowersOfTau> {
 }
 
 impl<'a, R: Rng> Transcript<'a, R, RandomCoeffStage1> {
-    fn current(&self) -> Stage1Values {
+    pub fn current(&self) -> Stage1Values {
         self.meta.values.clone()
     }
 
-    fn take(
+    pub fn take(
         &mut self,
         new_values: Stage1Values
     ) -> bool
@@ -250,7 +242,7 @@ impl<'a, R: Rng> Transcript<'a, R, RandomCoeffStage1> {
         }
     }
 
-    fn next(self) -> Transcript<'a, R, RandomCoeffStage2> {
+    pub fn next(self) -> Transcript<'a, R, RandomCoeffStage2> {
         let mut pk_k = Vec::with_capacity(self.meta.values.pk_a.len()+3);
 
         for ((&a, &b), &c) in self.meta.values.pk_a.iter().take(self.meta.values.pk_a.len() - 1)
@@ -285,11 +277,11 @@ impl<'a, R: Rng> Transcript<'a, R, RandomCoeffStage1> {
 }
 
 impl<'a, R: Rng> Transcript<'a, R, RandomCoeffStage2> {
-    fn current(&self) -> Stage2Values {
+    pub fn current(&self) -> Stage2Values {
         self.meta.values.clone()
     }
 
-    fn take(
+    pub fn take(
         &mut self,
         new_values: Stage2Values
     ) -> bool
@@ -326,7 +318,7 @@ impl<'a, R: Rng> Transcript<'a, R, RandomCoeffStage2> {
         }
     }
 
-    fn keypair(&self) -> Keypair {
+    pub fn keypair(&self) -> Keypair {
         Keypair::from(
             &self.cs,
             &self.meta.coeffs_1.pk_a,

@@ -11,6 +11,5 @@ mod qap;
 mod spairs;
 mod transcript;
 
-fn main() {
-    
-}
+pub use transcript::*;
+pub use spairs::*;
