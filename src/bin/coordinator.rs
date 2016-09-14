@@ -121,4 +121,6 @@ fn main() {
     println!("Constructing final keypair.");
 
     let keypair = transcript.keypair();
+
+    keypair.write_to_disk();
 }

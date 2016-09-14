@@ -1,5 +1,6 @@
 #include <sodium.h>
 #include <iostream>
+#include <fstream>
 #include <stdexcept>
 #include <assert.h>
 #include "common/default_types/r1cs_ppzksnark_pp.hpp"
@@ -39,6 +40,31 @@ extern "C" void libsnarkwrap_init() {
 
 // QAP
 
+template<typename T>
+void saveToFile(std::string path, T& obj) {
+    std::stringstream ss;
+    ss << obj;
+    std::ofstream fh;
+    fh.open(path, std::ios::binary);
+    ss.rdbuf()->pubseekpos(0, std::ios_base::out);
+    fh << ss.rdbuf();
+    fh.flush();
+    fh.close();
+}
+
+template<typename T>
+void loadFromFile(std::string path, T& objIn) {
+    std::stringstream ss;
+    std::ifstream fh(path, std::ios::binary);
+    assert(fh.is_open());
+    ss << fh.rdbuf();
+    fh.close();
+    ss.rdbuf()->pubseekpos(0, std::ios_base::in);
+    T obj;
+    ss >> obj;
+    objIn = std::move(obj);
+}
+
 void* libsnark_cs_return(
     uint64_t *d, uint64_t *vars, uint64_t *num_inputs, curve_Fr *omega,
     r1cs_constraint_system<curve_Fr> cs
@@ -67,6 +93,21 @@ void* libsnark_cs_return(
     *num_inputs = cs.num_inputs();
 
     return new r1cs_constraint_system<curve_Fr>(cs);
+}
+
+extern "C" void* libsnarkwrap_getcs_file(uint64_t *d, uint64_t *vars, uint64_t *num_inputs, curve_Fr *omega)
+{
+    r1cs_constraint_system<curve_Fr> cs;
+
+    loadFromFile("r1cs", cs);
+
+    return libsnark_cs_return(
+        d,
+        vars,
+        num_inputs,
+        omega,
+        cs
+    );
 }
 
 extern "C" void* libsnarkwrap_getcs_dummy(uint64_t *d, uint64_t *vars, uint64_t *num_inputs, curve_Fr *omega)
@@ -234,6 +275,14 @@ extern "C" void* libsnarkwrap_test_keygen(
             *gamma
         )
     );
+}
+
+extern "C" void libsnarkwrap_keypair_write(
+    const r1cs_ppzksnark_keypair<curve_pp> *kp
+)
+{
+    saveToFile("pk", kp->pk);
+    saveToFile("vk", kp->vk);
 }
 
 extern "C" bool libsnarkwrap_keypair_eq(

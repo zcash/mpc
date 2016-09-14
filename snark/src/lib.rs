@@ -10,8 +10,10 @@ use bn::*;
 extern "C" {
     fn libsnarkwrap_init();
     fn libsnarkwrap_getcs_dummy(d: *mut libc::uint64_t, vars: *mut libc::uint64_t, inputs: *mut libc::uint64_t, omega: *mut Fr) -> *mut libc::c_void;
+    fn libsnarkwrap_getcs_file(d: *mut libc::uint64_t, vars: *mut libc::uint64_t, inputs: *mut libc::uint64_t, omega: *mut Fr) -> *mut libc::c_void;
     fn libsnarkwrap_dropcs(cs: *mut libc::c_void);
     fn libsnarkwrap_dropkeypair(kp: *mut libc::c_void);
+    fn libsnarkwrap_keypair_write(kp: *const libc::c_void);
     fn libsnarkwrap_eval(
         cs: *const libc::c_void,
         lc1: *const G1,
@@ -118,6 +120,14 @@ impl PartialEq for Keypair {
 }
 
 impl Keypair {
+    pub fn write_to_disk(&self) {
+        initialize();
+
+        unsafe {
+            libsnarkwrap_keypair_write(self.ptr);
+        }
+    }
+
     pub fn from(
         cs: &CS,
         pk_a: &[G1],
@@ -196,6 +206,25 @@ impl Keypair {
 }
 
 impl CS {
+    pub fn from_file() -> Self {
+        initialize();
+
+        let mut d = 0;
+        let mut vars = 0;
+        let mut num_inputs = 0;
+        let mut o = Fr::zero();
+
+        let cs = unsafe { libsnarkwrap_getcs_file(&mut d, &mut vars, &mut num_inputs, &mut o) };
+
+        CS {
+            ptr: cs,
+            num_vars: vars as usize,
+            num_inputs: num_inputs as usize,
+            d: d as usize,
+            omega: o
+        }
+    }
+
     pub fn dummy() -> Self {
         initialize();
 
