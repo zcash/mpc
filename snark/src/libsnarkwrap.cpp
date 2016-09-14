@@ -39,35 +39,48 @@ extern "C" void libsnarkwrap_init() {
 
 // QAP
 
-extern "C" void* libsnarkwrap_getcs(uint64_t *d, uint64_t *vars, uint64_t *num_inputs, curve_Fr *omega)
+void* libsnark_cs_return(
+    uint64_t *d, uint64_t *vars, uint64_t *num_inputs, curve_Fr *omega,
+    r1cs_constraint_system<curve_Fr> cs
+)
+{
+    // A/B swap
+    cs.swap_AB_if_beneficial();
+
+    // QAP reduction
+    auto qap = r1cs_to_qap_instance_map(cs);
+
+    *vars = cs.num_variables()+1;
+    *d = qap.degree();
+
+    // Sanity checks
+    assert(qap.A_in_Lagrange_basis.size() == *vars);
+    assert(qap.B_in_Lagrange_basis.size() == *vars);
+    assert(qap.C_in_Lagrange_basis.size() == *vars);
+
+    // Degree of the QAP must be a power of 2
+    assert(*d >= 2);
+    assert(((*d / 2) * 2) == *d);
+    
+    // Assume radix2 evaluation domain
+    *omega = std::static_pointer_cast<basic_radix2_domain<curve_Fr>>(qap.domain)->omega;
+    *num_inputs = cs.num_inputs();
+
+    return new r1cs_constraint_system<curve_Fr>(cs);
+}
+
+extern "C" void* libsnarkwrap_getcs_dummy(uint64_t *d, uint64_t *vars, uint64_t *num_inputs, curve_Fr *omega)
 {
     // Generate a dummy circuit
     auto example = generate_r1cs_example_with_field_input<curve_Fr>(250, 4);
 
-    // A/B swap
-    example.constraint_system.swap_AB_if_beneficial();
-
-    {
-        // QAP reduction
-        auto qap = r1cs_to_qap_instance_map(example.constraint_system);
-
-        // Sanity checks
-        assert(qap.A_in_Lagrange_basis.size() == example.constraint_system.num_variables()+1);
-        assert(qap.B_in_Lagrange_basis.size() == example.constraint_system.num_variables()+1);
-        assert(qap.C_in_Lagrange_basis.size() == example.constraint_system.num_variables()+1);
-
-        // Degree of the QAP must be a power of 2
-        assert(qap.degree() == 256);
-        
-        // Assume radix2 evaluation domain
-        *omega = std::static_pointer_cast<basic_radix2_domain<curve_Fr>>(qap.domain)->omega;
-
-        *d = qap.degree();
-        *vars = example.constraint_system.num_variables()+1;
-        *num_inputs = example.constraint_system.num_inputs();
-    }
-    
-    return new r1cs_constraint_system<curve_Fr>(example.constraint_system);
+    return libsnark_cs_return(
+        d,
+        vars,
+        num_inputs,
+        omega,
+        example.constraint_system
+    );
 }
 
 extern "C" void libsnarkwrap_dropcs(r1cs_constraint_system<curve_Fr> *cs)

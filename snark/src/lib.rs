@@ -9,7 +9,7 @@ use bn::*;
 
 extern "C" {
     fn libsnarkwrap_init();
-    fn libsnarkwrap_getcs(d: *mut libc::uint64_t, vars: *mut libc::uint64_t, inputs: *mut libc::uint64_t, omega: *mut Fr) -> *mut libc::c_void;
+    fn libsnarkwrap_getcs_dummy(d: *mut libc::uint64_t, vars: *mut libc::uint64_t, inputs: *mut libc::uint64_t, omega: *mut Fr) -> *mut libc::c_void;
     fn libsnarkwrap_dropcs(cs: *mut libc::c_void);
     fn libsnarkwrap_dropkeypair(kp: *mut libc::c_void);
     fn libsnarkwrap_eval(
@@ -204,7 +204,7 @@ impl CS {
         let mut num_inputs = 0;
         let mut o = Fr::zero();
 
-        let cs = unsafe { libsnarkwrap_getcs(&mut d, &mut vars, &mut num_inputs, &mut o) };
+        let cs = unsafe { libsnarkwrap_getcs_dummy(&mut d, &mut vars, &mut num_inputs, &mut o) };
 
         CS {
             ptr: cs,
