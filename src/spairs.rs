@@ -2,7 +2,6 @@ use bn::*;
 use rand::Rng;
 use snark::*;
 use rustc_serialize::{Encodable, Encoder, Decodable, Decoder};
-use sequences::*;
 use multicore::*;
 use crossbeam;
 
@@ -394,18 +393,34 @@ pub fn checkvec<R: Rng, Group1: Group, Group2: Group>(
 where Group1: Pairing<Group2>
 {
     assert!(v1.len() == v2.len());
-    let mut p = Group1::zero();
-    let mut q = Group1::zero();
 
-    for i in v1.iter().zip(v2.iter()) {
-        let alpha = Fr::random(rng);
-        p = p + *i.0 * alpha;
-        q = q + *i.1 * alpha;
-    }
+    crossbeam::scope(|scope| {
+        let window_size = v1.len() / THREADS;
+        let mut tasks = vec![];
+        for i in v1.chunks(window_size).zip(v2.chunks(window_size)) {
+            tasks.push(scope.spawn(move || {
+                let rng = &mut ::rand::thread_rng();
+                let mut p = Group1::zero();
+                let mut q = Group1::zero();
 
-    if p.is_zero() || q.is_zero() { return false; }
+                for (a, b) in i.0.iter().zip(i.1.iter()) {
+                    let alpha = Fr::random(rng);
+                    p = p + (*a * alpha);
+                    q = q + (*b * alpha);
+                }
 
-    same_power(&Spair::new(p, q).unwrap(), &a)
+                if p.is_zero() || q.is_zero() {
+                    false
+                } else {
+                    same_power(&Spair::new(p, q).unwrap(), a)
+                }
+            }));
+        }
+
+        assert!(tasks.len() >= THREADS);
+
+        tasks.into_iter().map(|t| t.join()).all(|r| r)
+    })
 }
 
 pub fn checkseq<R: Rng, Group1: Group, Group2: Group>(

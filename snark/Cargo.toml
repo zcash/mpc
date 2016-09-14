@@ -16,4 +16,4 @@ gcc = "0.3.*"
 [dependencies]
 libc = "0.2.*"
 lazy_static = "0.1.*"
-bn = "0.2.2"
+bn = "0.2.3"
