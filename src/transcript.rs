@@ -111,9 +111,9 @@ impl<'a, R: Rng> Transcript<'a, R, PowersOfTau> {
                 &spairs.tau
             ) &&
             // Check that all G1 elements are exponentiated the same as G2 elements
-            checkseq(&mut self.rng, g1.iter(), &Spair::new(g2[0], g2[1]).unwrap()) &&
+            checkseq(&mut self.rng, &g1, &Spair::new(g2[0], g2[1]).unwrap()) &&
             // Check that all G2 elements are exponentiated the same as G1 elements
-            checkseq(&mut self.rng, g2.iter(), &Spair::new(g1[0], g1[1]).unwrap())
+            checkseq(&mut self.rng, &g2, &Spair::new(g1[0], g1[1]).unwrap())
         {
             self.meta.prev_g1 = g1;
             self.meta.prev_g2 = g2;
@@ -197,39 +197,46 @@ impl<'a, R: Rng> Transcript<'a, R, RandomCoeffStage1> {
                 &self.meta.spairs[self.meta.curplayer].pApB
             ) ||
             // Check parts of the proving key
-            !check(
+            !checkvec(
                 &mut self.rng,
-                self.meta.values.pk_a.iter().zip(new_values.pk_a.iter()),
+                &self.meta.values.pk_a,
+                &new_values.pk_a,
                 &self.meta.spairs[self.meta.curplayer].rho_a()
             ) ||
-            !check(
+            !checkvec(
                 &mut self.rng,
-                self.meta.values.pk_a_prime.iter().zip(new_values.pk_a_prime.iter()),
+                &self.meta.values.pk_a_prime,
+                &new_values.pk_a_prime,
                 &self.meta.spairs[self.meta.curplayer].alpha_a_rho_a()
             ) ||
-            !check(
+            !checkvec(
                 &mut self.rng,
-                self.meta.values.pk_b.iter().zip(new_values.pk_b.iter()),
+                &self.meta.values.pk_b,
+                &new_values.pk_b,
                 &self.meta.spairs[self.meta.curplayer].pB
             ) ||
-            !check(
+            !checkvec(
                 &mut self.rng,
-                self.meta.values.pk_b_temp.iter().zip(new_values.pk_b_temp.iter()),
+                &self.meta.values.pk_b_temp,
+                &new_values.pk_b_temp,
                 &self.meta.spairs[self.meta.curplayer].rho_b()
             ) ||
-            !check(
+            !checkvec(
                 &mut self.rng,
-                self.meta.values.pk_b_prime.iter().zip(new_values.pk_b_prime.iter()),
+                &self.meta.values.pk_b_prime,
+                &new_values.pk_b_prime,
                 &self.meta.spairs[self.meta.curplayer].alpha_b_rho_b()
             ) ||
-            !check(
+            !checkvec(
                 &mut self.rng,
-                self.meta.values.pk_c.iter().zip(new_values.pk_c.iter()),
+                &self.meta.values.pk_c,
+                &new_values.pk_c,
                 &self.meta.spairs[self.meta.curplayer].rho_a_rho_b()
             ) ||
-            !check(
+            !checkvec(
                 &mut self.rng,
-                self.meta.values.pk_c_prime.iter().zip(new_values.pk_c_prime.iter()),
+                &self.meta.values.pk_c_prime,
+                &new_values.pk_c_prime,
                 &self.meta.spairs[self.meta.curplayer].alpha_c_rho_a_rho_b()
             )
         {
@@ -303,9 +310,10 @@ impl<'a, R: Rng> Transcript<'a, R, RandomCoeffStage2> {
                 &Spair::new(self.meta.values.vk_beta_gamma_two, new_values.vk_beta_gamma_two).unwrap(),
                 &Spair::new(self.meta.values.vk_beta_gamma_one, new_values.vk_beta_gamma_one).unwrap()
             ) ||
-            !check(
+            !checkvec(
                 &mut self.rng,
-                self.meta.values.pk_k.iter().zip(new_values.pk_k.iter()),
+                &self.meta.values.pk_k,
+                &new_values.pk_k,
                 &self.meta.spairs[self.meta.curplayer].beta()
             )
         {

@@ -388,23 +388,19 @@ where Group1: Pairing<Group2> {
     a.f.pairing(b.fs) == a.fs.pairing(b.f)
 }
 
-/// This performs a check to see if a large number of (p,q) pairs in G
-/// have the same power, with only one pairing.
-pub fn check<'a,
-         R: Rng,
-         Group1: Group,
-         Group2: Group,
-         I: IntoIterator<Item=(&'a Group1, &'a Group1)>>
-         (rng: &mut R, i: I, a: &Spair<Group2>) -> bool
+pub fn checkvec<R: Rng, Group1: Group, Group2: Group>(
+    rng: &mut R, v1: &[Group1], v2: &[Group1], a: &Spair<Group2>
+) -> bool
 where Group1: Pairing<Group2>
 {
+    assert!(v1.len() == v2.len());
     let mut p = Group1::zero();
     let mut q = Group1::zero();
 
-    for v in i {
+    for i in v1.iter().zip(v2.iter()) {
         let alpha = Fr::random(rng);
-        p = p + *v.0 * alpha;
-        q = q + *v.1 * alpha;
+        p = p + *i.0 * alpha;
+        q = q + *i.1 * alpha;
     }
 
     if p.is_zero() || q.is_zero() { return false; }
@@ -412,15 +408,12 @@ where Group1: Pairing<Group2>
     same_power(&Spair::new(p, q).unwrap(), &a)
 }
 
-pub fn checkseq<'a,
-            R: Rng,
-            Group1: Group,
-            Group2: Group,
-            I: Iterator<Item=&'a Group1>>
-            (rng: &mut R, i: I, a: &Spair<Group2>) -> bool
+pub fn checkseq<R: Rng, Group1: Group, Group2: Group>(
+    rng: &mut R, v: &[Group1], a: &Spair<Group2>
+) -> bool
 where Group1: Pairing<Group2>
 {
-    check(rng, Sequences::new(i), a)
+    checkvec(rng, &v[0..v.len()-1], &v[1..], a)
 }
 
 #[test]
@@ -458,7 +451,7 @@ fn samepower_seq() {
                 a.push(n);
             }
 
-            assert!(checkseq(rng, a.iter(), &p));
+            assert!(checkseq(rng, &a, &p));
         }
 
         // Test not working.
@@ -478,7 +471,7 @@ fn samepower_seq() {
                 }
             }
 
-            assert!(!checkseq(rng, a.iter(), &p));
+            assert!(!checkseq(rng, &a, &p));
         }
     }
 
