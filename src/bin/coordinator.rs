@@ -42,7 +42,7 @@ fn main() {
 
     println!("\tAll players have connected!");
     println!("Constructing constraint system and performing QAP reduction...");
-    let cs = CS::dummy();
+    let cs = CS::from_file();
     println!("\tDone.");
 
     let rng = &mut ::rand::thread_rng();

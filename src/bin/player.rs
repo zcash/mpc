@@ -35,10 +35,16 @@ fn main() {
 
     // Round 2: Powers of tau
     {
+        println!("Receiving current tau powers...");
+
         let mut cur_g1: Vec<G1> = decode_from(stream, Infinite).unwrap();
         let mut cur_g2: Vec<G2> = decode_from(stream, Infinite).unwrap();
 
+        println!("Calculating new tau powers...");
+
         secrets.taupowers(&mut cur_g1, &mut cur_g2);
+
+        println!("Sending new tau powers...");
 
         // Send spairs, new g1 / g2
         encode_into(&spairs, stream, Infinite).unwrap();
@@ -48,18 +54,28 @@ fn main() {
 
     // Round 3: Random coeffs, part 1.
     {
+        println!("Receiving current random coeffs (stage1)...");
         let mut cur: Stage1Values = decode_from(stream, Infinite).unwrap();
 
+        println!("Calculating new random coeffs (stage1)...");
+
         secrets.stage1(&mut cur);
+
+        println!("Sending new random coeffs (stage1)...");
 
         encode_into(&cur, stream, Infinite).unwrap();
     }
 
     // Round 4: Random coeffs, part 2.
     {
+        println!("Receiving current random coeffs (stage2)...");
         let mut cur: Stage2Values = decode_from(stream, Infinite).unwrap();
 
+        println!("Calculating new random coeffs (stage2)...");
+
         secrets.stage2(&mut cur);
+
+        println!("Sending new random coeffs (stage2)...");
 
         encode_into(&cur, stream, Infinite).unwrap();
     }
