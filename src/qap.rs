@@ -1,6 +1,5 @@
 use bn::*;
 use snark::*;
-use crossbeam;
 use multicore::*;
 
 /// Evaluates the QAP A, B and C polynomials at tau given the powers of tau.
@@ -46,7 +45,7 @@ fn lagrange_coeffs<G: Group>(v: &[G], omega: Fr) -> Vec<G>
     assert_eq!((v.len() / 2) * 2, v.len());
 
     let overd = Fr::from_str(&format!("{}", v.len())).unwrap().inverse().unwrap();
-    let mut tmp = fft(v, omega, THREADS);
+    let mut tmp = fft(v, omega, ::THREADS);
     tmp.reverse(); // coefficients are in reverse
 
     mul_all_by(&mut tmp, overd);
@@ -108,7 +107,37 @@ fn fft<G: Group>(v: &[G], omega: Fr, threads: usize) -> Vec<G>
 
 #[test]
 fn compare_to_libsnark() {
-    use taupowers::*;
+    pub struct TauPowers {
+        acc: Fr,
+        tau: Fr
+    }
+
+    impl TauPowers {
+        pub fn new(tau: Fr) -> TauPowers {
+            TauPowers { acc: Fr::one(), tau: tau }
+        }
+    }
+
+    impl Iterator for TauPowers {
+        type Item = Fr;
+
+        fn next(&mut self) -> Option<Fr> {
+            let tmp = self.acc;
+            self.acc = tmp * self.tau;
+            Some(tmp)
+        }
+    }
+
+    {
+        let rng = &mut ::rand::thread_rng();
+
+        let tau = Fr::random(rng);
+        let mut taupowers = TauPowers::new(tau);
+        assert!(taupowers.next() == Some(Fr::one()));
+        assert!(taupowers.next() == Some(tau));
+        assert!(taupowers.next() == Some(tau * tau));
+        assert!(taupowers.next() == Some(tau * tau * tau));
+    }
 
     let rng = &mut ::rand::thread_rng();
 

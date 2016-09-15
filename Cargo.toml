@@ -9,12 +9,32 @@ authors = [
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 
+[[bin]]
+name = "coordinator"
+path = "src/coordinator.rs"
+# avoid duplicate tests
+test = false
+
+[[bin]]
+name = "player"
+path = "src/player.rs"
+
+[features]
+default = ["snark"]
+
+[dependencies.snark]
+path = "./snark/"
+optional = true
+
 [dependencies]
-snark = { path = "./snark/" }
 bn = "0.3.0"
 crossbeam = "0.2.9"
 rand = "0.3.14"
 rustc-serialize = "~0.3.19"
+log = "*"
+env_logger = "*"
+time = "*"
+ansi_term = "*"
 
 [dependencies.bincode]
 version = "0.6.0"
