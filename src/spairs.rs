@@ -48,6 +48,31 @@ pub struct Stage2Values {
     pub pk_k: Vec<G1>
 }
 
+impl Stage2Values {
+    pub fn new(pk_a: &[G1], pk_b_temp: &[G1], pk_c: &[G1]) -> Self {
+        let mut pk_k = Vec::with_capacity(pk_a.len()+3);
+
+        for ((a, b), c) in pk_a.iter().take(pk_a.len() - 1)
+                               .zip(pk_b_temp.iter().take(pk_b_temp.len() - 1))
+                               .zip(pk_c.iter().take(pk_c.len() - 1))
+        {
+            pk_k.push(*a + *b + *c);
+        }
+
+        // Perform Z extention as libsnark does.
+        pk_k.push(pk_a[pk_a.len() - 1]);
+        pk_k.push(pk_b_temp[pk_b_temp.len() - 1]);
+        pk_k.push(pk_c[pk_c.len() - 1]);
+
+        Stage2Values {
+            vk_gamma: G2::one(),
+            vk_beta_gamma_one: G1::one(),
+            vk_beta_gamma_two: G2::one(),
+            pk_k: pk_k
+        }
+    }
+}
+
 #[derive(Clone, PartialEq, Eq)]
 pub struct Spair<G: Group> {
     f: G,

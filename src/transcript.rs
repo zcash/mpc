@@ -250,31 +250,18 @@ impl<'a, R: Rng> Transcript<'a, R, RandomCoeffStage1> {
     }
 
     pub fn next(self) -> Transcript<'a, R, RandomCoeffStage2> {
-        let mut pk_k = Vec::with_capacity(self.meta.values.pk_a.len()+3);
-
-        for ((&a, &b), &c) in self.meta.values.pk_a.iter().take(self.meta.values.pk_a.len() - 1)
-                                  .zip(self.meta.values.pk_b_temp.iter().take(self.meta.values.pk_b_temp.len() - 1))
-                                  .zip(self.meta.values.pk_c.iter().take(self.meta.values.pk_c.len() - 1))
-        {
-            pk_k.push(a + b + c);
-        }
-
-        // Perform Z extention as libsnark does.
-        pk_k.push(self.meta.values.pk_a[self.meta.values.pk_a.len() - 1]);
-        pk_k.push(self.meta.values.pk_b_temp[self.meta.values.pk_b_temp.len() - 1]);
-        pk_k.push(self.meta.values.pk_c[self.meta.values.pk_c.len() - 1]);
+        let stage2 = Stage2Values::new(
+            &self.meta.values.pk_a,
+            &self.meta.values.pk_b_temp,
+            &self.meta.values.pk_c
+        );
 
         Transcript {
             meta: RandomCoeffStage2 {
                 spairs: self.meta.spairs,
                 powers_of_tau_g1: self.meta.powers_of_tau_g1,
                 coeffs_1: self.meta.values,
-                values: Stage2Values {
-                    vk_gamma: G2::one(),
-                    vk_beta_gamma_one: G1::one(),
-                    vk_beta_gamma_two: G2::one(),
-                    pk_k: pk_k
-                },
+                values: stage2,
                 curplayer: 0
             },
             cs: self.cs,
