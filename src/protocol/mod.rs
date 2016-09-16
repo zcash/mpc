@@ -13,25 +13,21 @@
 //!    the initial `Stage1Contents`, and the player transforms it with
 //!    their secrets, creating the new `Stage1Contents`, and sending it
 //!    to the coordinator along with the `PublicKey` generated in the
-//!    first step. The coordinator simply relays it to the next player,
-//!    recording the message in the transcript for later verification.
+//!    second step. The coordinator relays it to the next player, assuming
+//!    it is valid, and records it in the transcript for later verification.
 //!    This process continues until each player has participated.
 //! 4. *Stage 2: Random coefficients, part 1* - The coordinator takes
-//!    the final `Stage1Contents` of step 3 and uses it to construct
+//!    the final `Stage1Contents` of stage 1 and uses it to construct
 //!    `Stage2Contents`. In particular, it must perform an FFT to
 //!    evaluate the QAP at tau in the lagrange basis. It now proceeds
-//!    as in step 3, sending `Stage2Contents` to the player, receiving
+//!    as in stage 1, sending `Stage2Contents` to the player, receiving
 //!    a transformed `Stage2Contents`, and relaying that to the next
 //!    player.
-//! 5. *Stage 3: Random coefficients, part 2* - As in the previous round
+//! 5. *Stage 3: Random coefficients, part 2* - As in the previous stage
 //!    the final `Stage2Contents` is transformed into `Stage3Contents`
 //!    by the coordinator, and the protocol proceeds as in the previous
 //!    two steps, except with `Stage2Contents` instead.
 //! 6. The coordinator writes the transcript to disk.
-//!
-//! We choose to perform verification of the transcript, and construction
-//! of the final keypair, after the protocol has completed, for
-//! performance reasons.
 
 use crossbeam;
 use bn::*;
