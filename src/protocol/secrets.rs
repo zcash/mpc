@@ -198,6 +198,7 @@ impl PrivateKey {
 
     /// Construct a "blank" private key for accumulating
     /// in tests.
+    #[cfg(test)]
     pub fn new_blank() -> PrivateKey {
         PrivateKey {
             tau: Fr::one(),
@@ -211,6 +212,7 @@ impl PrivateKey {
         }
     }
 
+    #[cfg(test)]
     pub fn multiply(&mut self, other: &Self) {
         self.tau = self.tau * other.tau;
         self.alpha_a = self.alpha_a * other.alpha_a;
@@ -223,6 +225,7 @@ impl PrivateKey {
     }
 
     #[cfg(feature = "snark")]
+    #[cfg(test)]
     pub fn libsnark_keypair(&self, cs: &CS) -> Keypair {
         Keypair::generate(
             cs,
