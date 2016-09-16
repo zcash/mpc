@@ -16,6 +16,12 @@ path = "src/coordinator.rs"
 test = false
 
 [[bin]]
+name = "verifier"
+path = "src/verifier.rs"
+# avoid duplicate tests
+test = false
+
+[[bin]]
 name = "player"
 path = "src/player.rs"
 

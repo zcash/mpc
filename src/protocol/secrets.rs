@@ -5,6 +5,8 @@ use spair::*;
 use snark::*;
 use rustc_serialize::{Encodable, Encoder, Decodable, Decoder};
 
+pub type PublicKeyHash = [u8; 32];
+
 pub struct PublicKey {
     f1: G2, // f1
     f1pA: G2, // f1 * rho_a
@@ -39,6 +41,11 @@ impl PublicKey {
         same_power(&self.pB, &Spair::new(self.f1pA, self.f1pApB).unwrap()) &&
         same_power(&self.pApB, &Spair::new(self.f1, self.f1pApB).unwrap()) &&
         same_power(&self.gamma, &Spair::new(self.f2beta, self.f2betagamma).unwrap())
+    }
+
+    pub fn hash(&self) -> PublicKeyHash {
+        // TODO
+        [0xff; 32]
     }
 
     pub fn tau_g2(&self) -> Spair<G2> {

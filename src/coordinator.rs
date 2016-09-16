@@ -32,10 +32,11 @@ use bincode::SizeLimit::Infinite;
 use bincode::rustc_serialize::{encode_into, decode_from};
 use std::time::Duration;
 
-const LISTEN_ADDR: &'static str = "0.0.0.0:65530";
+const USE_DUMMY_CS: bool = true;
+const LISTEN_ADDR: &'static str = "127.0.0.1:65530";
 const NETWORK_MAGIC: [u8; 8] = [0xff, 0xff, 0x1f, 0xbb, 0x1c, 0xee, 0x00, 0x19];
-const PLAYERS: usize = 3;
-pub const THREADS: usize = 128;
+const PLAYERS: usize = 2;
+pub const THREADS: usize = 8;
 
 #[derive(Clone)]
 struct ConnectionHandler {
@@ -105,9 +106,21 @@ impl ConnectionHandler {
 
     fn run(&self, new_peers: Receiver<[u8; 8]>)
     {
+        use std::fs::File;
+
         info!("Loading R1CS from disk and performing QAP reduction...");
 
-        let cs = CS::from_file();
+        let cs = {
+            if USE_DUMMY_CS {
+                CS::dummy()
+            } else {
+                CS::from_file()
+            }
+        };
+
+        info!("Creating transcript file...");
+        let mut transcript = File::create("transcript").unwrap();
+        encode_into(&PLAYERS, &mut transcript, Infinite).unwrap();
 
         info!("Waiting for players to connect...");
 
@@ -117,9 +130,13 @@ impl ConnectionHandler {
         for peerid in new_peers.into_iter().take(PLAYERS) {
             info!("Initializing new player (peerid={})", peerid.to_hex());
             info!("Asking for commitment to PublicKey (peerid={})", peerid.to_hex());
-            commitments.push(self.read(&peerid));
+            let comm = self.read(&peerid);
+            commitments.push(comm);
             info!("PublicKey Commitment received (peerid={})", peerid.to_hex());
             peers.push(peerid);
+
+            info!("Writing commitment to transcript");
+            encode_into(&comm, &mut transcript, Infinite).unwrap();
         }
 
         // The remote end should never hang up, so this should always be `PLAYERS`.
@@ -135,10 +152,15 @@ impl ConnectionHandler {
 
             self.write(peerid, &stage1);
 
-            info!("Receiving stage1 transformation from peerid={}", peerid.to_hex());
-
-            // TODO: verify pubkey against comm
+            info!("Receiving public key from peerid={}", peerid.to_hex());
             let pubkey = self.read::<PublicKey>(peerid);
+
+            if pubkey.hash() != *comm {
+                error!("Peer did not properly commit to their public key (peerid={})", peerid.to_hex());
+                panic!("cannot recover.");
+            }
+
+            info!("Receiving stage1 transformation from peerid={}", peerid.to_hex());
             let new_stage1 = self.read::<Stage1Contents>(peerid);
 
             info!("Verifying transformation of stage1 from peerid={}", peerid.to_hex());
@@ -147,6 +169,11 @@ impl ConnectionHandler {
                 error!("Peer did not perform valid stage1 transformation (peerid={})", peerid.to_hex());
                 panic!("cannot recover.");
             } else {
+                info!("Writing `PublicKey` to transcript");
+                encode_into(&pubkey, &mut transcript, Infinite).unwrap();
+                info!("Writing new stage1 to transcript");
+                encode_into(&new_stage1, &mut transcript, Infinite).unwrap();
+
                 pubkeys.push(pubkey);
                 stage1 = new_stage1;
             }
@@ -170,6 +197,8 @@ impl ConnectionHandler {
                 error!("Peer did not perform valid stage2 transformation (peerid={})", peerid.to_hex());
                 panic!("cannot recover.");
             } else {
+                info!("Writing new stage2 to transcript");
+                encode_into(&new_stage2, &mut transcript, Infinite).unwrap();
                 stage2 = new_stage2;
             }
         }
@@ -192,6 +221,8 @@ impl ConnectionHandler {
                 error!("Peer did not perform valid stage3 transformation (peerid={})", peerid.to_hex());
                 panic!("cannot recover.");
             } else {
+                info!("Writing new stage3 to transcript");
+                encode_into(&new_stage3, &mut transcript, Infinite).unwrap();
                 stage3 = new_stage3;
             }
         }
@@ -203,6 +234,10 @@ impl ConnectionHandler {
         kp.write_to_disk();
 
         info!("Keypair written to disk.");
+
+        transcript.flush().unwrap();
+
+        info!("Transcript flushed to disk.");
     }
 
     fn accept(&self, peerid: [u8; 8], stream: TcpStream) {

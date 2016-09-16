@@ -25,7 +25,7 @@ use std::time::Duration;
 use bincode::SizeLimit::Infinite;
 use bincode::rustc_serialize::{encode_into, decode_from};
 
-const COORDINATOR_ADDR: &'static str = "testrun.z.cash:65530";
+const COORDINATOR_ADDR: &'static str = "127.0.0.1:65530";
 const NETWORK_MAGIC: [u8; 8] = [0xff, 0xff, 0x1f, 0xbb, 0x1c, 0xee, 0x00, 0x19];
 pub const THREADS: usize = 8;
 
@@ -113,9 +113,7 @@ fn main() {
     let privkey = PrivateKey::new(rng);
     let pubkey = privkey.pubkey(rng);
 
-    let commitment: [u8; 32] = [0; 32];
-
-    // TODO
+    let commitment = pubkey.hash();
     handler.write(&commitment);
 
     // Get powers of tau.
