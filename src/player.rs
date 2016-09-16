@@ -8,12 +8,7 @@ extern crate crossbeam;
 extern crate rustc_serialize;
 extern crate bincode;
 
-mod multicore;
 mod protocol;
-mod spair;
-#[cfg(feature = "snark")]
-mod qap;
-
 use self::protocol::*;
 
 use rand::Rng;

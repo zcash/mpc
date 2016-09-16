@@ -5,10 +5,7 @@ extern crate crossbeam;
 extern crate rustc_serialize;
 extern crate bincode;
 
-mod multicore;
-mod qap;
 mod protocol;
-mod spair;
 
 use std::fs::File;
 use std::io::{Read, Write};

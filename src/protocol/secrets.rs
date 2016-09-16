@@ -1,7 +1,7 @@
 use bn::*;
 use rand::Rng;
-use spair::*;
-#[cfg(feature = "snark")]
+use super::spair::{Spair, same_power};
+#[cfg(test)]
 use snark::*;
 use rustc_serialize::{Encodable, Encoder, Decodable, Decoder};
 
@@ -231,7 +231,6 @@ impl PrivateKey {
         self.gamma = self.gamma * other.gamma;
     }
 
-    #[cfg(feature = "snark")]
     #[cfg(test)]
     pub fn libsnark_keypair(&self, cs: &CS) -> Keypair {
         Keypair::generate(

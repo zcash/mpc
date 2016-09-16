@@ -1,11 +1,11 @@
 use bn::*;
 use snark::*;
-use multicore::*;
+use super::multicore::*;
 
 /// Evaluates the QAP A, B and C polynomials at tau given the powers of tau.
 /// Converts the powers of tau in G1 and G2 into the lagrange basis with an FFT
 /// Extends with Z(tau) as (effectively) done in libsnark.
-pub fn evaluate_qap(g1_powers: &[G1], g2_powers: &[G2], cs: &CS) -> (Vec<G1>, Vec<G1>, Vec<G2>, Vec<G1>)
+pub fn evaluate(g1_powers: &[G1], g2_powers: &[G2], cs: &CS) -> (Vec<G1>, Vec<G1>, Vec<G2>, Vec<G1>)
 {
     assert_eq!(g1_powers.len(), cs.d+1);
     assert_eq!(g2_powers.len(), cs.d+1);

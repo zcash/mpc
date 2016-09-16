@@ -35,16 +35,19 @@
 
 use crossbeam;
 use bn::*;
-use spair::*;
-use multicore::*;
 
-#[cfg(feature = "snark")]
-use qap::*;
 #[cfg(feature = "snark")]
 use snark::*;
 
 mod secrets;
+mod spair;
+mod multicore;
 pub use self::secrets::*;
+use self::spair::*;
+use self::multicore::*;
+
+#[cfg(feature = "snark")]
+mod qap;
 
 /// The powers of tau.
 #[derive(Clone, RustcEncodable, RustcDecodable)]
@@ -123,7 +126,7 @@ impl Stage2Contents {
     #[cfg(feature = "snark")]
     pub fn new(cs: &CS, stage1: &Stage1Contents) -> Self {
         // evaluate QAP for the next round
-        let (at, bt1, bt2, ct) = evaluate_qap(&stage1.v1, &stage1.v2, cs);
+        let (at, bt1, bt2, ct) = qap::evaluate(&stage1.v1, &stage1.v2, cs);
 
         Stage2Contents {
             vk_a: G2::one(),

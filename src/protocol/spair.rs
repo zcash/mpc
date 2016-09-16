@@ -1,7 +1,6 @@
 use rand::Rng;
 use bn::*;
 use crossbeam;
-use multicore::*;
 use rustc_serialize::{Encodable, Encoder, Decodable, Decoder};
 
 #[derive(Clone, PartialEq, Eq)]

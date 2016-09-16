@@ -13,10 +13,7 @@ extern crate env_logger;
 extern crate time;
 extern crate ansi_term;
 
-mod multicore;
-mod qap;
 mod protocol;
-mod spair;
 
 use snark::*;
 use self::protocol::*;
