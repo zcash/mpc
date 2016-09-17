@@ -94,11 +94,26 @@ fn fft<G: Group>(v: &[G], omega: Fr, threads: usize) -> Vec<G>
             (rx_evens.recv().unwrap(), rx_odds.recv().unwrap())
         };
 
-        let mut acc = omega;
         let mut res = Vec::with_capacity(v.len());
-        for i in 0..v.len() {
-            res.push(evens[i%d2] + odds[i%d2] * acc);
-            acc = acc * omega;
+        if threads < 2 {
+            let mut acc = omega;
+            for i in 0..v.len() {
+                res.push(evens[i%d2] + odds[i%d2] * acc);
+                acc = acc * omega;
+            }
+        } else {
+            res.extend_from_slice(&evens);
+            res.extend_from_slice(&evens);
+
+            parallel(&mut res, |mut i, v| {
+                let mut acc = omega.pow(Fr::from_str(&format!("{}", i+1)).unwrap());
+
+                for a in v {
+                    *a = *a + odds[i%d2] * acc;
+                    acc = acc * omega;
+                    i += 1;
+                }
+            }, threads);
         }
 
         res
