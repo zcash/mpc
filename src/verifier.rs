@@ -68,7 +68,7 @@ fn main() {
         stage2 = new_stage;
     }
 
-    let mut stage3 = Stage3Contents::new(&stage2);
+    let mut stage3 = Stage3Contents::new(&cs, &stage2);
 
     for i in 0..num_players {
         let new_stage: Stage3Contents = decode_from(&mut f, Infinite).unwrap();

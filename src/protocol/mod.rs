@@ -236,20 +236,21 @@ pub struct Stage3Contents {
 }
 
 impl Stage3Contents {
-    pub fn new(stage2: &Stage2Contents) -> Self {
-        let mut pk_k = Vec::with_capacity(stage2.pk_a.len()+3);
+    pub fn new(cs: &CS, stage2: &Stage2Contents) -> Self {
+        assert_eq!(stage2.pk_a.len(), cs.num_vars + 1);
+        assert_eq!(stage2.pk_b_temp.len(), cs.num_vars + 1);
+        assert_eq!(stage2.pk_c.len(), cs.num_vars + 1);
 
-        for ((a, b), c) in stage2.pk_a.iter().take(stage2.pk_a.len() - 1)
-                           .zip(stage2.pk_b_temp.iter().take(stage2.pk_b_temp.len() - 1))
-                           .zip(stage2.pk_c.iter().take(stage2.pk_c.len() - 1))
-        {
-            pk_k.push(*a + *b + *c);
-        }
+        let mut pk_k = Vec::with_capacity(cs.num_vars + 3);
 
         // Perform Z extention as libsnark does.
-        pk_k.push(stage2.pk_a[stage2.pk_a.len() - 1]);
-        pk_k.push(stage2.pk_b_temp[stage2.pk_b_temp.len() - 1]);
-        pk_k.push(stage2.pk_c[stage2.pk_c.len() - 1]);
+        pk_k.extend_from_slice(&stage2.pk_a);
+        pk_k.push(stage2.pk_b_temp[cs.num_vars]);
+        pk_k.push(stage2.pk_c[cs.num_vars]);
+
+        // Add B and C
+        add_all_to(&mut pk_k[0..cs.num_vars], &stage2.pk_b_temp[0..cs.num_vars]);
+        add_all_to(&mut pk_k[0..cs.num_vars], &stage2.pk_c[0..cs.num_vars]);
 
         Stage3Contents {
             vk_gamma: G2::one(),
@@ -349,7 +350,7 @@ fn compare_to_libsnark_generate() {
     }
 
     // Stage 3
-    let mut stage3 = Stage3Contents::new(&stage2);
+    let mut stage3 = Stage3Contents::new(&cs, &stage2);
     for (private, public) in privkeys.iter().zip(pubkeys.iter()) {
         let prev = stage3.clone();
         stage3.transform(private);

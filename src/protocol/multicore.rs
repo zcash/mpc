@@ -25,3 +25,14 @@ pub fn mul_all_by<G: Group>(v: &mut [G], c: Fr) {
         }
     }, ::THREADS);
 }
+
+pub fn add_all_to<G: Group>(v: &mut [G], other: &[G]) {
+    assert_eq!(v.len(), other.len());
+
+    parallel(v, |mut i, v| {
+        for a in v {
+            *a = *a + other[i];
+            i += 1;
+        }
+    }, ::THREADS);
+}

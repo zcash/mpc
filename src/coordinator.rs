@@ -200,9 +200,9 @@ impl ConnectionHandler {
             }
         }
 
-        info!("Initializing stage3 with stage2");
+        info!("Initializing stage3 with constraint system and stage2");
 
-        let mut stage3 = Stage3Contents::new(&stage2);
+        let mut stage3 = Stage3Contents::new(&cs, &stage2);
         for (pubkey, peerid) in pubkeys.iter().zip(peers.iter()) {
             info!("Sending stage3 to peerid={}", peerid.to_hex());
 
