@@ -1,15 +1,27 @@
 use bn::*;
 use crossbeam;
 
-pub fn mul_all_by<G: Group>(v: &mut [G], c: Fr) {
+pub fn parallel<G: Group, F: Fn(usize, &mut [G]) + Sync>(v: &mut [G], f: F, threads: usize)
+{
+    let f = &f;
+
     crossbeam::scope(|scope| {
-        let window_size = v.len() / ::THREADS;
-        for i in v.chunks_mut(window_size) {
+        let window_size = v.len() / threads;
+        let mut j = 0;
+        for v in v.chunks_mut(window_size) {
             scope.spawn(move || {
-                for i in i {
-                    *i = *i * c;
-                }
+                f(j, v);
             });
+
+            j += window_size;
         }
     });
+}
+
+pub fn mul_all_by<G: Group>(v: &mut [G], c: Fr) {
+    parallel(v, |_, v| {
+        for i in v {
+            *i = *i * c;
+        }
+    }, ::THREADS);
 }
