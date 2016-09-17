@@ -29,7 +29,6 @@
 //!    two steps, except with `Stage2Contents` instead.
 //! 6. The coordinator writes the transcript to disk.
 
-use crossbeam;
 use bn::*;
 
 #[cfg(feature = "snark")]
@@ -62,24 +61,15 @@ impl Stage1Contents {
     }
 
     pub fn transform(&mut self, s: &PrivateKey) {
-        assert_eq!(self.v1.len(), self.v2.len());
+        parallel_two(&mut self.v1, &mut self.v2, |start, v1, v2| {
+            let mut c = s.tau.pow(Fr::from_str(&format!("{}", start)).unwrap());
 
-        crossbeam::scope(|scope| {
-            let window_size = self.v1.len() / ::THREADS;
-            let mut j = 0;
-            for i in self.v1.chunks_mut(window_size).zip(self.v2.chunks_mut(window_size)) {
-                scope.spawn(move || {
-                    let mut c = s.tau.pow(Fr::from_str(&format!("{}", window_size * j)).unwrap());
-                    for (g1, g2) in i.0.iter_mut().zip(i.1.iter_mut()) {
-                        *g1 = *g1 * c;
-                        *g2 = *g2 * c;
-                        c = c * s.tau;
-                    }
-                });
-
-                j += 1;
+            for (g1, g2) in v1.iter_mut().zip(v2.iter_mut()) {
+                *g1 = *g1 * c;
+                *g2 = *g2 * c;
+                c = c * s.tau;
             }
-        });
+        }, ::THREADS);
     }
 
     pub fn verify_transform(&self, prev: &Self, p: &PublicKey) -> bool {
