@@ -22,6 +22,12 @@ path = "src/verifier.rs"
 test = false
 
 [[bin]]
+name = "simulator"
+path = "src/simulator.rs"
+# avoid duplicate tests
+test = false
+
+[[bin]]
 name = "player"
 path = "src/player.rs"
 

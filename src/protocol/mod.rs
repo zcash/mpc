@@ -226,6 +226,7 @@ pub struct Stage3Contents {
 }
 
 impl Stage3Contents {
+    #[cfg(feature = "snark")]
     pub fn new(cs: &CS, stage2: &Stage2Contents) -> Self {
         assert_eq!(stage2.pk_a.len(), cs.num_vars + 1);
         assert_eq!(stage2.pk_b_temp.len(), cs.num_vars + 1);

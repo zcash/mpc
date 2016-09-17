@@ -1,7 +1,7 @@
 use bn::*;
 use rand::Rng;
 use super::spair::{Spair, same_power};
-#[cfg(test)]
+#[cfg(feature = "snark")]
 use snark::*;
 use rustc_serialize::{Encodable, Encoder, Decodable, Decoder};
 
@@ -205,7 +205,7 @@ impl PrivateKey {
 
     /// Construct a "blank" private key for accumulating
     /// in tests.
-    #[cfg(test)]
+    #[cfg(feature = "snark")]
     pub fn new_blank() -> PrivateKey {
         PrivateKey {
             tau: Fr::one(),
@@ -219,7 +219,7 @@ impl PrivateKey {
         }
     }
 
-    #[cfg(test)]
+    #[cfg(feature = "snark")]
     pub fn multiply(&mut self, other: &Self) {
         self.tau = self.tau * other.tau;
         self.alpha_a = self.alpha_a * other.alpha_a;
@@ -231,7 +231,7 @@ impl PrivateKey {
         self.gamma = self.gamma * other.gamma;
     }
 
-    #[cfg(test)]
+    #[cfg(feature = "snark")]
     pub fn libsnark_keypair(&self, cs: &CS) -> Keypair {
         Keypair::generate(
             cs,
