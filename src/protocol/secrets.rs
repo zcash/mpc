@@ -7,6 +7,7 @@ use rustc_serialize::{Encodable, Encoder, Decodable, Decoder};
 
 pub type PublicKeyHash = [u8; 32];
 
+#[derive(Clone, PartialEq, Eq)]
 pub struct PublicKey {
     f1: G2, // f1
     f1pA: G2, // f1 * rho_a
@@ -17,12 +18,12 @@ pub struct PublicKey {
     f2: G2, // f2
     f2beta: G2, // f2 * beta
     f2betagamma: G2, // f2 * beta * gamma
-    tau: Spair<G2>, // (f0, f0 * tau)
-    aA: Spair<G1>, // (f3, f3 * alpha_a)
-    aC: Spair<G1>, // (f4, f4 * alpha_c)
-    pB: Spair<G1>, // (f5, f5 * rho_b)
-    pApB: Spair<G1>, // (f6, f6 * rho_a)
-    gamma: Spair<G1> // (f7, f7 * gamma)
+    tau: Spair<G2>, // (f3, f3 * tau)
+    aA: Spair<G1>, // (f4, f4 * alpha_a)
+    aC: Spair<G1>, // (f5, f5 * alpha_c)
+    pB: Spair<G1>, // (f6, f6 * rho_b)
+    pApB: Spair<G1>, // (f7, f7 * rho_a * rho_b)
+    gamma: Spair<G1> // (f8, f8 * gamma)
 }
 
 impl PublicKey {
@@ -284,11 +285,66 @@ impl PrivateKey {
 }
 
 #[test]
-fn create_keypair() {
+fn pubkey_reserialize() {
+    use bincode::rustc_serialize::{encode, decode};
+    use bincode::SizeLimit::Infinite;
+
+    let rng = &mut ::rand::thread_rng();
+
+    let privkey = PrivateKey::new(rng);
+    let pubkey = privkey.pubkey(rng);
+
+    let a = encode(&pubkey, Infinite).unwrap();
+    let b = decode(&a).unwrap();
+
+    assert!(pubkey == b);
+}
+
+#[test]
+fn pubkey_consistency() {
+    // The public key is inherently malleable, but some
+    // fields cannot be changed unless others are also
+    // changed, which makes for a good consistency check
+    // of the code.
+
+    fn breaks_validity<F: for<'a> Fn(&'a mut PublicKey) -> &'a mut G2>(
+        pubkey: &PublicKey,
+        f: F,
+        expected: bool
+    ) {
+        let mut pubkey = pubkey.clone();
+
+        {
+            // Change it in a way that should break consistency.
+
+            let change = f(&mut pubkey);
+            *change = *change + *change;
+        }
+
+        assert!(pubkey.is_valid() == !expected);
+    }
+
     let rng = &mut ::rand::thread_rng();
 
     let privkey = PrivateKey::new(rng);
     let pubkey = privkey.pubkey(rng);
 
     assert!(pubkey.is_valid());
+
+    breaks_validity(&pubkey, |p| &mut p.f1, true);
+    breaks_validity(&pubkey, |p| &mut p.f1pA, true);
+    breaks_validity(&pubkey, |p| &mut p.f1pAaA, true);
+    breaks_validity(&pubkey, |p| &mut p.f1pApB, true);
+    breaks_validity(&pubkey, |p| &mut p.f1pApBaC, true);
+    breaks_validity(&pubkey, |p| &mut p.f2beta, true);
+    breaks_validity(&pubkey, |p| &mut p.f2betagamma, true);
+
+    // We only ever need beta (alone) in G2, so changing the
+    // relationship between f2 and f2beta cannot be
+    // inconsistent
+    breaks_validity(&pubkey, |p| &mut p.f2, false);
+
+    // We only ever need alpha_b (alone) in G2 as well, so
+    // f1pApBaB cannot be inconsistent with other relationships
+    breaks_validity(&pubkey, |p| &mut p.f1pApBaB, false);
 }
