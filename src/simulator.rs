@@ -48,7 +48,13 @@ fn main() {
     // Compare to libsnark
 
     let mut acc = PrivateKey::new_blank();
+    let mut doneone = false;
     for private in privkeys.iter() {
+        if doneone {
+            assert!(kp != acc.libsnark_keypair(&cs));
+        } else {
+            doneone = true;
+        }
         acc.multiply(private);
     }
 
