@@ -74,6 +74,8 @@ pub fn checkvec<Group1: Group, Group2: Group>(
 where Group1: Pairing<Group2>
 {
     parallel_all(v1, v2, |v1, v2| {
+        assert_eq!(v1.len(), v2.len());
+
         let rng = &mut ::rand::thread_rng();
         let mut p = Group1::zero();
         let mut q = Group1::zero();
@@ -84,7 +86,9 @@ where Group1: Pairing<Group2>
             q = q + (*b * alpha);
         }
 
-        if p.is_zero() || q.is_zero() {
+        if p.is_zero() && q.is_zero() {
+            true
+        } else if p.is_zero() || q.is_zero() {
             false
         } else {
             same_power(&Spair::new(p, q).unwrap(), a)

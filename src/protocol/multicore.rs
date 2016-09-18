@@ -1,6 +1,15 @@
 use bn::*;
 use crossbeam;
 
+fn calculate_window_size<T>(v: &[T], threads: usize) -> usize
+{
+    if threads >= v.len() {
+        v.len()
+    } else {
+        v.len() / threads
+    }
+}
+
 pub fn parallel_all<
     G: Group,
     F: Fn(&[G], &[G]) -> bool + Sync
@@ -11,7 +20,7 @@ pub fn parallel_all<
     let f = &f;
 
     crossbeam::scope(|scope| {
-        let window_size = v1.len() / threads;
+        let window_size = calculate_window_size(v1, threads);
         let mut tasks = vec![];
         for i in v1.chunks(window_size).zip(v2.chunks(window_size)) {
             tasks.push(scope.spawn(move || {
@@ -34,7 +43,7 @@ pub fn parallel_two<
     let f = &f;
 
     crossbeam::scope(|scope| {
-        let window_size = v1.len() / threads;
+        let window_size = calculate_window_size(v1, threads);
         let mut j = 0;
         for v in v1.chunks_mut(window_size)
                    .zip(v2.chunks_mut(window_size)) 
@@ -57,7 +66,7 @@ pub fn parallel<
     let f = &f;
 
     crossbeam::scope(|scope| {
-        let window_size = v.len() / threads;
+        let window_size = calculate_window_size(v, threads);
         let mut j = 0;
         for v in v.chunks_mut(window_size) {
             scope.spawn(move || {
