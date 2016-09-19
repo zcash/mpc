@@ -230,13 +230,7 @@ impl ConnectionHandler {
             }
         }
 
-        info!("MPC complete, producing keypair.");
-
-        let kp = keypair(&cs, &stage1, &stage2, &stage3);
-
-        kp.write_to_disk();
-
-        info!("Keypair written to disk.");
+        info!("MPC complete, flushing transcript to disk.");
 
         transcript.flush().unwrap();
 
