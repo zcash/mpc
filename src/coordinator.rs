@@ -5,6 +5,7 @@ extern crate rand;
 extern crate snark;
 extern crate crossbeam;
 extern crate rustc_serialize;
+extern crate blake2_rfc;
 extern crate bincode;
 
 #[macro_use]
@@ -123,17 +124,22 @@ impl ConnectionHandler {
 
         let mut peers = vec![];
         let mut pubkeys = vec![];
-        let mut commitments: Vec<[u8; 32]> = vec![];
+        let mut commitments: Vec<PublicKeyHash> = vec![];
         for peerid in new_peers.into_iter().take(PLAYERS) {
             info!("Initializing new player (peerid={})", peerid.to_hex());
             info!("Asking for commitment to PublicKey (peerid={})", peerid.to_hex());
-            let comm = self.read(&peerid);
-            commitments.push(comm);
+            let comm: PublicKeyHash = self.read(&peerid);
+            if comm.len() != 64 {
+                error!("Peer sent invalid length commitment (peerid={})", peerid.to_hex());
+                panic!("cannot recover.");
+            }
             info!("PublicKey Commitment received (peerid={})", peerid.to_hex());
-            peers.push(peerid);
 
             info!("Writing commitment to transcript");
             encode_into(&comm, &mut transcript, Infinite).unwrap();
+
+            commitments.push(comm);
+            peers.push(peerid);
         }
 
         // The remote end should never hang up, so this should always be `PLAYERS`.

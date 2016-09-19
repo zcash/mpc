@@ -6,6 +6,7 @@ extern crate rand;
 extern crate snark;
 extern crate crossbeam;
 extern crate rustc_serialize;
+extern crate blake2_rfc;
 extern crate bincode;
 
 mod protocol;

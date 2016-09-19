@@ -3,6 +3,7 @@ extern crate rand;
 extern crate snark;
 extern crate crossbeam;
 extern crate rustc_serialize;
+extern crate blake2_rfc;
 extern crate bincode;
 
 mod protocol;
@@ -35,7 +36,10 @@ fn main() {
     let mut commitments = vec![];
     let mut pubkeys = vec![];
     for i in 0..num_players {
-        let comm: [u8; 32] = decode_from(&mut f, Infinite).unwrap();
+        let comm: PublicKeyHash = decode_from(&mut f, Infinite).unwrap();
+        if comm.len() != 64 {
+            panic!("Commitment length invalid.");
+        }
         commitments.push(comm);
     }
 

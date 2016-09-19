@@ -5,7 +5,7 @@ use super::spair::{Spair, same_power};
 use snark::*;
 use rustc_serialize::{Encodable, Encoder, Decodable, Decoder};
 
-pub type PublicKeyHash = [u8; 32];
+pub type PublicKeyHash = Vec<u8>;
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct PublicKey {
@@ -45,8 +45,13 @@ impl PublicKey {
     }
 
     pub fn hash(&self) -> PublicKeyHash {
-        // TODO
-        [0xff; 32]
+        use bincode::SizeLimit::Infinite;
+        use bincode::rustc_serialize::encode;
+        use blake2_rfc::blake2b::blake2b;
+
+        let serialized = encode(self, Infinite).unwrap();
+
+        blake2b(64, &[], &serialized).as_bytes().to_vec()
     }
 
     pub fn tau_g2(&self) -> Spair<G2> {
