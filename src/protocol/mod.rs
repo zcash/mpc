@@ -36,6 +36,7 @@ use snark::*;
 
 mod secrets;
 mod spair;
+mod nizk;
 mod multicore;
 pub use self::secrets::*;
 use self::spair::*;
