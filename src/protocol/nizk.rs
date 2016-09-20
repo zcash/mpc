@@ -1,20 +1,6 @@
 use bn::*;
 use rand::Rng;
-
-/// Hash a group element with BLAKE2b and interpret it as an
-/// element of Fr.
-fn hash_group_to_fr<G: Group>(r: &G) -> Fr {
-    use bincode::SizeLimit::Infinite;
-    use bincode::rustc_serialize::encode;
-    use blake2_rfc::blake2b::blake2b;
-
-    let serialized = encode(r, Infinite).unwrap();
-
-    let mut hash = [0; 64];
-    hash.copy_from_slice(blake2b(64, &[], &serialized).as_bytes());
-
-    Fr::interpret(&hash)
-}
+use super::digest::Digest;
 
 #[derive(PartialEq, Eq, Clone, RustcEncodable, RustcDecodable)]
 pub struct Nizk<G: Group> {
@@ -28,7 +14,7 @@ impl<G: Group> Nizk<G> {
     pub fn new<R: Rng>(rng: &mut R, f: G, s: Fr) -> Nizk<G> {
         let a = Fr::random(rng);
         let r = f * a;
-        let c = hash_group_to_fr(&r);
+        let c = Digest::from(&r).expect("group element should never fail to encode").interpret();
         Nizk {
             r: r,
             u: a + c * s
@@ -37,7 +23,7 @@ impl<G: Group> Nizk<G> {
 
     /// Verify the Nizk
     pub fn verify(&self, f: G, fs: G) -> bool {
-        let c = hash_group_to_fr(&self.r);
+        let c = Digest::from(&self.r).expect("group element should never fail to encode").interpret();
         
         (f * self.u) == (self.r + fs * c)
     }

@@ -38,7 +38,9 @@ mod secrets;
 mod spair;
 mod nizk;
 mod multicore;
+mod digest;
 pub use self::secrets::*;
+pub use self::digest::*;
 use self::spair::*;
 use self::multicore::*;
 

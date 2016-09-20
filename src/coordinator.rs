@@ -124,15 +124,11 @@ impl ConnectionHandler {
 
         let mut peers = vec![];
         let mut pubkeys = vec![];
-        let mut commitments: Vec<PublicKeyHash> = vec![];
+        let mut commitments: Vec<Digest> = vec![];
         for peerid in new_peers.into_iter().take(PLAYERS) {
             info!("Initializing new player (peerid={})", peerid.to_hex());
             info!("Asking for commitment to PublicKey (peerid={})", peerid.to_hex());
-            let comm: PublicKeyHash = self.read(&peerid);
-            if comm.len() != 64 {
-                error!("Peer sent invalid length commitment (peerid={})", peerid.to_hex());
-                panic!("cannot recover.");
-            }
+            let comm: Digest = self.read(&peerid);
             info!("PublicKey Commitment received (peerid={})", peerid.to_hex());
 
             info!("Writing commitment to transcript");

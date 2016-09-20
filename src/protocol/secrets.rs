@@ -2,11 +2,10 @@ use bn::*;
 use rand::Rng;
 use super::spair::{Spair, same_power};
 use super::nizk::Nizk;
+use super::digest::Digest;
 #[cfg(feature = "snark")]
 use snark::*;
 use rustc_serialize::{Encodable, Encoder, Decodable, Decoder};
-
-pub type PublicKeyHash = Vec<u8>;
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct PublicKey {
@@ -67,14 +66,8 @@ impl PublicKey {
         same_power(&self.f8_gamma, &Spair::new(self.f2_beta, self.f2_beta_gamma).unwrap())
     }
 
-    pub fn hash(&self) -> PublicKeyHash {
-        use bincode::SizeLimit::Infinite;
-        use bincode::rustc_serialize::encode;
-        use blake2_rfc::blake2b::blake2b;
-
-        let serialized = encode(self, Infinite).unwrap();
-
-        blake2b(64, &[], &serialized).as_bytes().to_vec()
+    pub fn hash(&self) -> Digest {
+        Digest::from(self).expect("PublicKey should never fail to encode")
     }
 
     pub fn tau_g2(&self) -> Spair<G2> {

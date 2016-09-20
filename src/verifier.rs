@@ -36,10 +36,7 @@ fn main() {
     let mut commitments = vec![];
     let mut pubkeys = vec![];
     for i in 0..num_players {
-        let comm: PublicKeyHash = decode_from(&mut f, Infinite).unwrap();
-        if comm.len() != 64 {
-            panic!("Commitment length invalid.");
-        }
+        let comm: Digest = decode_from(&mut f, Infinite).unwrap();
         commitments.push(comm);
     }
 
