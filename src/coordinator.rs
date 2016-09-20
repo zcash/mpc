@@ -243,7 +243,6 @@ impl ConnectionHandler {
                 if already.get().is_none() {
                     warn!("Ignoring duplicate connection attempt (peerid={})", peerid.to_hex());
                 } else {
-                    warn!("Re-established connection with peerid={}", peerid.to_hex());
                     already.insert(Some(stream));
                 }
             },
@@ -320,7 +319,6 @@ fn main() {
                                 if magic != NETWORK_MAGIC {
                                     warn!("Remote host {} did not supply correct network magic.", addr);
                                 } else {
-                                    info!("Establishing connection with {} (peerid={})", addr, peerid.to_hex());
                                     stream.set_read_timeout(Some(Duration::from_secs(60)));
                                     stream.set_write_timeout(Some(Duration::from_secs(60)));
                                     handler.accept(peerid, stream);
