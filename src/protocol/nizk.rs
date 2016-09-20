@@ -25,7 +25,7 @@ pub struct Nizk<G: Group> {
 impl<G: Group> Nizk<G> {
     /// Constructing the non-interactive schnorr proof for knowledge of log
     /// of s*f in base f, i.e., knowledge of s
-    fn new<R: Rng>(f: G, s: Fr, rng: &mut R) -> Nizk<G> {
+    pub fn new<R: Rng>(f: G, s: Fr, rng: &mut R) -> Nizk<G> {
         let a = Fr::random(rng);
         let r = f * a;
         let c = hash_group_to_fr(&r);
@@ -36,7 +36,7 @@ impl<G: Group> Nizk<G> {
     }
 
     /// Verify the Nizk
-    fn verify(&self, f: G, fs: G) -> bool {
+    pub fn verify(&self, f: G, fs: G) -> bool {
         let c = hash_group_to_fr(&self.r);
         
         (f * self.u) == (self.r + fs * c)
