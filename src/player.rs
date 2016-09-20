@@ -11,6 +11,8 @@ extern crate bincode;
 
 mod protocol;
 use self::protocol::*;
+mod consts;
+use self::consts::*;
 
 use rand::Rng;
 use std::net::{TcpStream};
@@ -22,7 +24,6 @@ use bincode::SizeLimit::Infinite;
 use bincode::rustc_serialize::{encode_into, decode_from};
 
 const COORDINATOR_ADDR: &'static str = "127.0.0.1:65530";
-const NETWORK_MAGIC: [u8; 8] = [0xff, 0xff, 0x1f, 0xbb, 0x1c, 0xee, 0x00, 0x19];
 pub const THREADS: usize = 8;
 
 struct ConnectionHandler {

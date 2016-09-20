@@ -15,9 +15,12 @@ extern crate time;
 extern crate ansi_term;
 
 mod protocol;
+use self::protocol::*;
+
+mod consts;
+use self::consts::*;
 
 use snark::*;
-use self::protocol::*;
 use std::net::{TcpListener, TcpStream};
 use std::io::{Read, Write};
 use std::collections::HashMap;
@@ -31,9 +34,8 @@ use bincode::rustc_serialize::{encode_into, decode_from};
 use std::time::Duration;
 
 const USE_DUMMY_CS: bool = true;
-const LISTEN_ADDR: &'static str = "127.0.0.1:65530";
-const NETWORK_MAGIC: [u8; 8] = [0xff, 0xff, 0x1f, 0xbb, 0x1c, 0xee, 0x00, 0x19];
-const PLAYERS: usize = 2;
+const LISTEN_ADDR: &'static str = "0.0.0.0:65530";
+const PLAYERS: usize = 3;
 pub const THREADS: usize = 8;
 
 #[derive(Clone)]
