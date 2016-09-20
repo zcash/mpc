@@ -16,7 +16,7 @@ fn hash_group_to_fr<G: Group>(r: &G) -> Fr {
     Fr::interpret(&hash)
 }
 
-#[derive(Clone, RustcEncodable, RustcDecodable)]
+#[derive(PartialEq, Eq, Clone, RustcEncodable, RustcDecodable)]
 pub struct Nizk<G: Group> {
     r: G,
     u: Fr
@@ -25,7 +25,7 @@ pub struct Nizk<G: Group> {
 impl<G: Group> Nizk<G> {
     /// Constructing the non-interactive schnorr proof for knowledge of log
     /// of s*f in base f, i.e., knowledge of s
-    pub fn new<R: Rng>(f: G, s: Fr, rng: &mut R) -> Nizk<G> {
+    pub fn new<R: Rng>(rng: &mut R, f: G, s: Fr) -> Nizk<G> {
         let a = Fr::random(rng);
         let r = f * a;
         let c = hash_group_to_fr(&r);
@@ -52,7 +52,7 @@ fn nizk_test() {
             let s = Fr::random(rng);
             let fs = f * s;
 
-            let proof = Nizk::new(f, s, rng);
+            let proof = Nizk::new(rng, f, s);
             assert!(proof.verify(f, fs));
             assert!(!proof.verify(f, f * Fr::random(rng)));
             assert!(!proof.verify(f * Fr::random(rng), fs));

@@ -1,6 +1,7 @@
 use bn::*;
 use rand::Rng;
 use super::spair::{Spair, same_power};
+use super::nizk::Nizk;
 #[cfg(feature = "snark")]
 use snark::*;
 use rustc_serialize::{Encodable, Encoder, Decodable, Decoder};
@@ -18,17 +19,35 @@ pub struct PublicKey {
     f2: G2, // f2
     f2_beta: G2, // f2 * beta
     f2_beta_gamma: G2, // f2 * beta * gamma
+
     f3_tau: Spair<G2>, // (f3, f3 * tau)
     f4_alpha_a: Spair<G1>, // (f4, f4 * alpha_a)
     f5_alpha_c: Spair<G1>, // (f5, f5 * alpha_c)
     f6_rho_b: Spair<G1>, // (f6, f6 * rho_b)
     f7_rho_a_rho_b: Spair<G1>, // (f7, f7 * rho_a * rho_b)
-    f8_gamma: Spair<G1> // (f8, f8 * gamma)
+    f8_gamma: Spair<G1>, // (f8, f8 * gamma)
+
+    nizk_tau: Nizk<G2>,
+    nizk_alpha_a: Nizk<G1>,
+    nizk_alpha_b: Nizk<G2>,
+    nizk_alpha_c: Nizk<G1>,
+    nizk_rho_a: Nizk<G2>,
+    nizk_rho_b: Nizk<G1>,
+    nizk_beta: Nizk<G2>,
+    nizk_gamma: Nizk<G1>
 }
 
 impl PublicKey {
     fn is_valid(&self) -> bool {
-        self.is_well_formed()
+        self.is_well_formed() &&
+        self.f3_tau.verify_nizk(&self.nizk_tau) &&
+        self.f4_alpha_a.verify_nizk(&self.nizk_alpha_a) &&
+        self.nizk_alpha_b.verify(self.f1_rho_a_rho_b, self.f1_rho_a_rho_b_alpha_b) &&
+        self.f5_alpha_c.verify_nizk(&self.nizk_alpha_c) &&
+        self.nizk_rho_a.verify(self.f1, self.f1_rho_a) &&
+        self.f6_rho_b.verify_nizk(&self.nizk_rho_b) &&
+        self.nizk_beta.verify(self.f2, self.f2_beta) &&
+        self.f8_gamma.verify_nizk(&self.nizk_gamma)
     }
 
     fn is_well_formed(&self) -> bool {
@@ -130,12 +149,22 @@ impl Encodable for PublicKey {
         try!(self.f2.encode(s));
         try!(self.f2_beta.encode(s));
         try!(self.f2_beta_gamma.encode(s));
+
         try!(self.f3_tau.encode(s));
         try!(self.f4_alpha_a.encode(s));
         try!(self.f5_alpha_c.encode(s));
         try!(self.f6_rho_b.encode(s));
         try!(self.f7_rho_a_rho_b.encode(s));
         try!(self.f8_gamma.encode(s));
+
+        try!(self.nizk_tau.encode(s));
+        try!(self.nizk_alpha_a.encode(s));
+        try!(self.nizk_alpha_b.encode(s));
+        try!(self.nizk_alpha_c.encode(s));
+        try!(self.nizk_rho_a.encode(s));
+        try!(self.nizk_rho_b.encode(s));
+        try!(self.nizk_beta.encode(s));
+        try!(self.nizk_gamma.encode(s));
 
         Ok(())
     }
@@ -152,12 +181,22 @@ impl Decodable for PublicKey {
         let f2 = try!(G2::decode(s));
         let f2_beta = try!(G2::decode(s));
         let f2_beta_gamma = try!(G2::decode(s));
+
         let f3_tau = try!(Spair::decode(s));
         let f4_alpha_a = try!(Spair::decode(s));
         let f5_alpha_c = try!(Spair::decode(s));
         let f6_rho_b = try!(Spair::decode(s));
         let f7_rho_a_rho_b = try!(Spair::decode(s));
         let f8_gamma = try!(Spair::decode(s));
+
+        let nizk_tau = try!(Nizk::decode(s));
+        let nizk_alpha_a = try!(Nizk::decode(s));
+        let nizk_alpha_b = try!(Nizk::decode(s));
+        let nizk_alpha_c = try!(Nizk::decode(s));
+        let nizk_rho_a = try!(Nizk::decode(s));
+        let nizk_rho_b = try!(Nizk::decode(s));
+        let nizk_beta = try!(Nizk::decode(s));
+        let nizk_gamma = try!(Nizk::decode(s));
 
         let perhaps_valid = PublicKey {
             f1: f1,
@@ -174,7 +213,15 @@ impl Decodable for PublicKey {
             f5_alpha_c: f5_alpha_c,
             f6_rho_b: f6_rho_b,
             f7_rho_a_rho_b: f7_rho_a_rho_b,
-            f8_gamma: f8_gamma
+            f8_gamma: f8_gamma,
+            nizk_tau: nizk_tau,
+            nizk_alpha_a: nizk_alpha_a,
+            nizk_alpha_b: nizk_alpha_b,
+            nizk_alpha_c: nizk_alpha_c,
+            nizk_rho_a: nizk_rho_a,
+            nizk_rho_b: nizk_rho_b,
+            nizk_beta: nizk_beta,
+            nizk_gamma: nizk_gamma
         };
 
         if perhaps_valid.is_valid() {
@@ -269,6 +316,22 @@ impl PrivateKey {
         let f2_beta = f2 * self.beta;
         let f2_beta_gamma = f2_beta * self.gamma;
 
+        let f3_tau = Spair::random(rng, self.tau).unwrap();
+        let f4_alpha_a = Spair::random(rng, self.alpha_a).unwrap();
+        let f5_alpha_c = Spair::random(rng, self.alpha_c).unwrap();
+        let f6_rho_b = Spair::random(rng, self.rho_b).unwrap();
+        let f7_rho_a_rho_b = Spair::random(rng, self.rho_a * self.rho_b).unwrap();
+        let f8_gamma = Spair::random(rng, self.gamma).unwrap();
+
+        let nizk_tau = f3_tau.nizk(rng, self.tau);
+        let nizk_alpha_a = f4_alpha_a.nizk(rng, self.alpha_a);
+        let nizk_alpha_b = Nizk::new(rng, f1_rho_a_rho_b, self.alpha_b);
+        let nizk_alpha_c = f5_alpha_c.nizk(rng, self.alpha_c);
+        let nizk_rho_a = Nizk::new(rng, f1, self.rho_a);
+        let nizk_rho_b = f6_rho_b.nizk(rng, self.rho_b);
+        let nizk_beta = Nizk::new(rng, f2, self.beta);
+        let nizk_gamma = f8_gamma.nizk(rng, self.gamma);
+
         let tmp = PublicKey {
             f1: f1,
             f1_rho_a: f1_rho_a,
@@ -279,12 +342,22 @@ impl PrivateKey {
             f2: f2,
             f2_beta: f2_beta,
             f2_beta_gamma: f2_beta_gamma,
-            f3_tau: Spair::random(rng, self.tau).unwrap(),
-            f4_alpha_a: Spair::random(rng, self.alpha_a).unwrap(),
-            f5_alpha_c: Spair::random(rng, self.alpha_c).unwrap(),
-            f6_rho_b: Spair::random(rng, self.rho_b).unwrap(),
-            f7_rho_a_rho_b: Spair::random(rng, self.rho_a * self.rho_b).unwrap(),
-            f8_gamma: Spair::random(rng, self.gamma).unwrap()
+
+            f3_tau: f3_tau,
+            f4_alpha_a: f4_alpha_a,
+            f5_alpha_c: f5_alpha_c,
+            f6_rho_b: f6_rho_b,
+            f7_rho_a_rho_b: f7_rho_a_rho_b,
+            f8_gamma: f8_gamma,
+
+            nizk_tau: nizk_tau,
+            nizk_alpha_a: nizk_alpha_a,
+            nizk_alpha_b: nizk_alpha_b,
+            nizk_alpha_c: nizk_alpha_c,
+            nizk_rho_a: nizk_rho_a,
+            nizk_rho_b: nizk_rho_b,
+            nizk_beta: nizk_beta,
+            nizk_gamma: nizk_gamma
         };
 
         assert!(tmp.is_valid());

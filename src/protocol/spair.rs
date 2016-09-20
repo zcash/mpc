@@ -1,6 +1,7 @@
 use rand::Rng;
 use bn::*;
 use super::multicore::*;
+use super::nizk::Nizk;
 use rustc_serialize::{Encodable, Encoder, Decodable, Decoder};
 
 #[derive(Clone, PartialEq, Eq)]
@@ -43,6 +44,14 @@ impl<G: Group> Spair<G> {
         let f = G::random(rng);
 
         Spair::new(f, f * s)
+    }
+
+    pub fn nizk<R: Rng>(&self, rng: &mut R, s: Fr) -> Nizk<G> {
+        Nizk::new(rng, self.f, s)
+    }
+
+    pub fn verify_nizk(&self, proof: &Nizk<G>) -> bool {
+        proof.verify(self.f, self.fs)
     }
 }
 
