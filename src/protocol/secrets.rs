@@ -28,6 +28,10 @@ pub struct PublicKey {
 
 impl PublicKey {
     fn is_valid(&self) -> bool {
+        self.is_well_formed()
+    }
+
+    fn is_well_formed(&self) -> bool {
         !self.f1.is_zero() &&
         !self.f1_rho_a.is_zero() &&
         !self.f1_rho_a_alpha_a.is_zero() &&
@@ -312,7 +316,7 @@ fn pubkey_consistency() {
     // changed, which makes for a good consistency check
     // of the code.
 
-    fn breaks_validity<F: for<'a> Fn(&'a mut PublicKey) -> &'a mut G2>(
+    fn breaks_wf<F: for<'a> Fn(&'a mut PublicKey) -> &'a mut G2>(
         pubkey: &PublicKey,
         f: F,
         expected: bool
@@ -326,7 +330,7 @@ fn pubkey_consistency() {
             *change = *change + *change;
         }
 
-        assert!(pubkey.is_valid() == !expected);
+        assert!(pubkey.is_well_formed() == !expected);
     }
 
     let rng = &mut ::rand::thread_rng();
@@ -336,20 +340,20 @@ fn pubkey_consistency() {
 
     assert!(pubkey.is_valid());
 
-    breaks_validity(&pubkey, |p| &mut p.f1, true);
-    breaks_validity(&pubkey, |p| &mut p.f1_rho_a, true);
-    breaks_validity(&pubkey, |p| &mut p.f1_rho_a_alpha_a, true);
-    breaks_validity(&pubkey, |p| &mut p.f1_rho_a_rho_b, true);
-    breaks_validity(&pubkey, |p| &mut p.f1_rho_a_rho_b_alpha_c, true);
-    breaks_validity(&pubkey, |p| &mut p.f2_beta, true);
-    breaks_validity(&pubkey, |p| &mut p.f2_beta_gamma, true);
+    breaks_wf(&pubkey, |p| &mut p.f1, true);
+    breaks_wf(&pubkey, |p| &mut p.f1_rho_a, true);
+    breaks_wf(&pubkey, |p| &mut p.f1_rho_a_alpha_a, true);
+    breaks_wf(&pubkey, |p| &mut p.f1_rho_a_rho_b, true);
+    breaks_wf(&pubkey, |p| &mut p.f1_rho_a_rho_b_alpha_c, true);
+    breaks_wf(&pubkey, |p| &mut p.f2_beta, true);
+    breaks_wf(&pubkey, |p| &mut p.f2_beta_gamma, true);
 
     // We only ever need beta (alone) in G2, so changing the
     // relationship between f2 and f2_beta cannot be
     // inconsistent
-    breaks_validity(&pubkey, |p| &mut p.f2, false);
+    breaks_wf(&pubkey, |p| &mut p.f2, false);
 
     // We only ever need alpha_b (alone) in G2 as well, so
     // f1_rho_a_rho_b_alpha_b cannot be inconsistent with other relationships
-    breaks_validity(&pubkey, |p| &mut p.f1_rho_a_rho_b_alpha_b, false);
+    breaks_wf(&pubkey, |p| &mut p.f1_rho_a_rho_b_alpha_b, false);
 }
