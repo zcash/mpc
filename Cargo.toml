@@ -12,19 +12,26 @@ readme = "README.md"
 [[bin]]
 name = "coordinator"
 path = "src/coordinator.rs"
-# avoid duplicate tests
 test = false
 
 [[bin]]
 name = "verifier"
 path = "src/verifier.rs"
-# avoid duplicate tests
 test = false
 
 [[bin]]
 name = "simulator"
 path = "src/simulator.rs"
-# avoid duplicate tests
+test = false
+
+[[bin]]
+name = "compute"
+path = "src/compute.rs"
+test = false
+
+[[bin]]
+name = "network"
+path = "src/network.rs"
 test = false
 
 [[bin]]

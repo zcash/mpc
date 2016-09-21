@@ -9,6 +9,31 @@ use blake2_rfc::blake2b::blake2b;
 pub struct Digest([u8; 64]);
 
 impl Digest {
+    pub fn to_string(&self) -> String {
+        use rustc_serialize::hex::{ToHex};
+
+        self.0.to_hex()
+    }
+
+    pub fn from_string(s: &str) -> Option<Digest> {
+        use rustc_serialize::hex::{FromHex};
+
+        match s.from_hex() {
+            Ok(decoded) => {
+                if decoded.len() == 64 {
+                    let mut decoded_bytes: [u8; 64] = [0; 64];
+                    decoded_bytes.copy_from_slice(&decoded);
+                    Some(Digest(decoded_bytes))
+                } else {
+                    None
+                }
+            },
+            Err(_) => {
+                None
+            }
+        }
+    }
+
     pub fn from<E: Encodable>(obj: &E) -> Option<Self> {
         let serialized = encode(obj, Infinite);
         match serialized {
