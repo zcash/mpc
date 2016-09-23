@@ -1,0 +1,31 @@
+# Contributor:
+# Maintainer:
+pkgname=mpc_compute
+pkgver=1.0.0
+pkgrel=0
+pkgdesc="MPC compute node binary"
+url="https://z.cash/"
+arch="x86_64"
+license="MIT"
+depends="alpine-base xorriso"
+makedepends=""
+install=""
+subpackages=""
+replaces="alpine-base"
+source="mpc_compute
+        inittab
+        mpc_compute.rs"
+builddir="$srcdir/"
+
+build() {
+        cd "$builddir"
+}
+
+package() {
+        cd "$builddir"
+        mkdir -p "$pkgdir"/bin/
+        mkdir -p "$pkgdir"/etc/
+        cp mpc_compute "$pkgdir"/bin/mpc_compute
+        cp mpc_compute.rs "$pkgdir"/bin/mpc_compute.rs
+        cp inittab "$pkgdir"/etc/inittab
+}

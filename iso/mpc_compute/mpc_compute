@@ -1,0 +1,7 @@
+#!/bin/sh
+
+clear
+cd /
+/bin/mpc_compute.rs
+
+sleep 10000000
