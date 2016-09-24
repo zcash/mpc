@@ -34,11 +34,6 @@ name = "network"
 path = "src/network.rs"
 test = false
 
-[[bin]]
-name = "player"
-path = "src/player.rs"
-test = false
-
 [features]
 default = ["snark"]
 
