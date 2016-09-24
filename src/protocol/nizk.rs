@@ -1,6 +1,6 @@
 use bn::*;
 use rand::Rng;
-use super::digest::Digest;
+use super::digest::Digest512;
 
 #[derive(PartialEq, Eq, Clone, RustcEncodable, RustcDecodable)]
 pub struct Nizk<G: Group> {
@@ -14,7 +14,7 @@ impl<G: Group> Nizk<G> {
     pub fn new<R: Rng>(rng: &mut R, f: G, s: Fr) -> Nizk<G> {
         let a = Fr::random(rng);
         let r = f * a;
-        let c = Digest::from(&r).expect("group element should never fail to encode").interpret();
+        let c = Digest512::from(&r).expect("group element should never fail to encode").interpret();
         Nizk {
             r: r,
             u: a + c * s
@@ -23,7 +23,7 @@ impl<G: Group> Nizk<G> {
 
     /// Verify the Nizk
     pub fn verify(&self, f: G, fs: G) -> bool {
-        let c = Digest::from(&self.r).expect("group element should never fail to encode").interpret();
+        let c = Digest512::from(&self.r).expect("group element should never fail to encode").interpret();
         
         (f * self.u) == (self.r + fs * c)
     }

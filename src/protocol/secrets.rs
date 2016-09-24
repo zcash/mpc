@@ -2,7 +2,7 @@ use bn::*;
 use rand::Rng;
 use super::spair::{Spair, same_power};
 use super::nizk::Nizk;
-use super::digest::Digest;
+use super::digest::Digest512;
 #[cfg(feature = "snark")]
 use snark::*;
 use rustc_serialize::{Encodable, Encoder, Decodable, Decoder};
@@ -66,8 +66,8 @@ impl PublicKey {
         same_power(&self.f8_gamma, &Spair::new(self.f2_beta, self.f2_beta_gamma).unwrap())
     }
 
-    pub fn hash(&self) -> Digest {
-        Digest::from(self).expect("PublicKey should never fail to encode")
+    pub fn hash(&self) -> Digest512 {
+        Digest512::from(self).expect("PublicKey should never fail to encode")
     }
 
     pub fn tau_g2(&self) -> Spair<G2> {
