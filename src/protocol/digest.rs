@@ -68,21 +68,27 @@ digest_impl!(Digest512, 64, blake2b);
 digest_impl!(Digest256, 32, blake2s);
 
 impl Digest512 {
+    pub fn interpret(&self) -> Fr {
+        Fr::interpret(&self.0)
+    }
+}
+
+impl Digest256 {
     pub fn to_string(&self) -> String {
         use rustc_serialize::hex::{ToHex};
 
         self.0.to_hex()
     }
 
-    pub fn from_string(s: &str) -> Option<Digest512> {
+    pub fn from_string(s: &str) -> Option<Digest256> {
         use rustc_serialize::hex::{FromHex};
 
         match s.from_hex() {
             Ok(decoded) => {
-                if decoded.len() == 64 {
-                    let mut decoded_bytes: [u8; 64] = [0; 64];
+                if decoded.len() == 32 {
+                    let mut decoded_bytes: [u8; 32] = [0; 32];
                     decoded_bytes.copy_from_slice(&decoded);
-                    Some(Digest512(decoded_bytes))
+                    Some(Digest256(decoded_bytes))
                 } else {
                     None
                 }
@@ -91,9 +97,5 @@ impl Digest512 {
                 None
             }
         }
-    }
-
-    pub fn interpret(&self) -> Fr {
-        Fr::interpret(&self.0)
     }
 }

@@ -126,11 +126,11 @@ impl ConnectionHandler {
 
         let mut peers = vec![];
         let mut pubkeys = vec![];
-        let mut commitments: Vec<Digest512> = vec![];
+        let mut commitments: Vec<Digest256> = vec![];
         for peerid in new_peers.into_iter().take(PLAYERS) {
             info!("Initializing new player (peerid={})", peerid.to_hex());
             info!("Asking for commitment to PublicKey (peerid={})", peerid.to_hex());
-            let comm: Digest512 = self.read(&peerid);
+            let comm: Digest256 = self.read(&peerid);
             info!("PublicKey Commitment received (peerid={})", peerid.to_hex());
 
             info!("Writing commitment to transcript");

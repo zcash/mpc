@@ -36,7 +36,7 @@ fn main() {
     let mut commitments = vec![];
     let mut pubkeys = vec![];
     for i in 0..num_players {
-        let comm: Digest = decode_from(&mut f, Infinite).unwrap();
+        let comm: Digest256 = decode_from(&mut f, Infinite).unwrap();
         commitments.push(comm);
     }
 
