@@ -7,6 +7,7 @@ extern crate crossbeam;
 extern crate rustc_serialize;
 extern crate blake2_rfc;
 extern crate bincode;
+extern crate byteorder;
 
 #[macro_use]
 extern crate log;

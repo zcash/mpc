@@ -6,6 +6,7 @@ extern crate blake2_rfc;
 extern crate bincode;
 // TODO: remove
 extern crate snark;
+extern crate byteorder;
 
 mod protocol;
 use self::protocol::*;

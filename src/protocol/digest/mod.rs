@@ -6,6 +6,9 @@ use bincode::rustc_serialize::encode;
 use blake2_rfc::blake2b::blake2b;
 use blake2_rfc::blake2s::blake2s;
 
+mod base58;
+use self::base58::{ToBase58, FromBase58};
+
 macro_rules! digest_impl {
     ($name:ident, $bytes:expr, $hash:ident) => {
         pub struct $name([u8; $bytes]);
@@ -75,15 +78,12 @@ impl Digest512 {
 
 impl Digest256 {
     pub fn to_string(&self) -> String {
-        use rustc_serialize::hex::{ToHex};
-
-        self.0.to_hex()
+        (&self.0[..]).to_base58check()
     }
 
     pub fn from_string(s: &str) -> Option<Digest256> {
-        use rustc_serialize::hex::{FromHex};
-
-        match s.from_hex() {
+        let f: Result<Vec<u8>, _> = FromBase58::from_base58check(s);
+        match f {
             Ok(decoded) => {
                 if decoded.len() == 32 {
                     let mut decoded_bytes: [u8; 32] = [0; 32];
@@ -93,9 +93,7 @@ impl Digest256 {
                     None
                 }
             },
-            Err(_) => {
-                None
-            }
+            Err(_) => None
         }
     }
 }
@@ -116,4 +114,10 @@ fn digest_string_repr() {
 
         assert!(comm == newcomm);
     }
+
+    assert!(Digest256::from_string("2b8c8iK5PGtStZzEz45ycJSQLq1RPXGkjqmWAM1Q8jQ4dqVHkY").is_some());
+
+    assert!(Digest256::from_string("2b8c8iK5PGtStZzEz45ycJSQLq1RPXGkjqmWAM1Q8jQ4dqVHkS").is_none());
+    assert!(Digest256::from_string("2b8c8iK5PGtStZzEz45ycJSQLq1RPXGkjqmWAM2Q8jQ4dqVHkY").is_none());
+    assert!(Digest256::from_string("1b8c8iK5PGtStZzEz45ycJSQLq1RPXGkjqmWAM1Q8jQ4dqVHkY").is_none());
 }

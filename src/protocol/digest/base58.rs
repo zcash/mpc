@@ -17,7 +17,19 @@
 use std::{error, fmt};
 
 use byteorder::{ByteOrder, LittleEndian, WriteBytesExt};
-use util::hash::Sha256dHash;
+
+// Unlike base58check, we use blake2s for the checksum,
+// because we didn't want to pull in yet another hash
+// algorithm. We don't care about being well-specified
+// in our use of base58 here.
+fn blake2_u32(input: &[u8]) -> u32 {
+    use blake2_rfc::blake2s::blake2s;
+
+    let mut buf = [0; 32];
+    buf.copy_from_slice(&blake2s(32, &[], input).as_bytes());
+
+    LittleEndian::read_u32(&buf[28..])
+}
 
 /// An error that might occur during base58 decoding
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -128,7 +140,7 @@ pub trait FromBase58: Sized {
             return Err(Error::TooShort(ret.len()));
         }
         let ck_start = ret.len() - 4;
-        let expected = Sha256dHash::from_data(&ret[..ck_start]).into_le().low_u32();
+        let expected = blake2_u32(&ret[..ck_start]);
         let actual = LittleEndian::read_u32(&ret[ck_start..(ck_start + 4)]);
         if expected != actual {
             return Err(Error::BadChecksum(expected, actual));
@@ -179,7 +191,7 @@ pub trait ToBase58 {
     /// (Tack the first 4 256-digits of the object's Bitcoin hash onto the end.)
     fn to_base58check(&self) -> String {
         let mut data = self.base58_layout();
-        let checksum = Sha256dHash::from_data(&data).into_le().low_u32();
+        let checksum = blake2_u32(&data);
         data.write_u32::<LittleEndian>(checksum).unwrap();
         base58_encode_slice(&data)
     }
@@ -201,54 +213,3 @@ impl FromBase58 for Vec<u8> {
         Ok(data)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use serialize::hex::FromHex;
-
-    use super::ToBase58;
-    use super::FromBase58;
-
-    #[test]
-    fn test_base58_encode() {
-        // Basics
-        assert_eq!(&(&[0][..]).to_base58(), "1");
-        assert_eq!(&(&[1][..]).to_base58(), "2");
-        assert_eq!(&(&[58][..]).to_base58(), "21");
-        assert_eq!(&(&[13, 36][..]).to_base58(), "211");
-
-        // Leading zeroes
-        assert_eq!(&(&[0, 13, 36][..]).to_base58(), "1211");
-        assert_eq!(&(&[0, 0, 0, 0, 13, 36][..]).to_base58(), "1111211");
-
-        // Addresses
-        assert_eq!(&"00f8917303bfa8ef24f292e8fa1419b20460ba064d".from_hex().unwrap().to_base58check(),
-                   "1PfJpZsjreyVrqeoAfabrRwwjQyoSQMmHH");
-      }
-
-      #[test]
-      fn test_base58_decode() {
-        // Basics
-        assert_eq!(FromBase58::from_base58("1").ok(), Some(vec![0u8]));
-        assert_eq!(FromBase58::from_base58("2").ok(), Some(vec![1u8]));
-        assert_eq!(FromBase58::from_base58("21").ok(), Some(vec![58u8]));
-        assert_eq!(FromBase58::from_base58("211").ok(), Some(vec![13u8, 36]));
-
-        // Leading zeroes
-        assert_eq!(FromBase58::from_base58("1211").ok(), Some(vec![0u8, 13, 36]));
-        assert_eq!(FromBase58::from_base58("111211").ok(), Some(vec![0u8, 0, 0, 13, 36]));
-
-        // Addresses
-        assert_eq!(FromBase58::from_base58check("1PfJpZsjreyVrqeoAfabrRwwjQyoSQMmHH").ok(),
-                   Some("00f8917303bfa8ef24f292e8fa1419b20460ba064d".from_hex().unwrap()))
-    }
-
-    #[test]
-    fn test_base58_roundtrip() {
-        let s = "xprv9wTYmMFdV23N2TdNG573QoEsfRrWKQgWeibmLntzniatZvR9BmLnvSxqu53Kw1UmYPxLgboyZQaXwTCg8MSY3H2EU4pWcQDnRnrVA1xe8fs";
-        let v: Vec<u8> = FromBase58::from_base58check(s).unwrap();
-        assert_eq!(&v.to_base58check(), s);
-        assert_eq!(FromBase58::from_base58check(&v.to_base58check()).ok(), Some(v));
-    }
-}
-
