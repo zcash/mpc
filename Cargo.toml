@@ -12,7 +12,7 @@ readme = "README.md"
 [[bin]]
 name = "coordinator"
 path = "src/coordinator.rs"
-test = false
+test = true
 
 [[bin]]
 name = "verifier"
@@ -37,6 +37,7 @@ test = false
 [[bin]]
 name = "player"
 path = "src/player.rs"
+test = false
 
 [features]
 default = ["snark"]
