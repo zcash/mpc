@@ -99,3 +99,21 @@ impl Digest256 {
         }
     }
 }
+
+#[test]
+fn digest_string_repr() {
+    use super::secrets::*;
+
+    let rng = &mut ::rand::thread_rng();
+
+    let privkey = PrivateKey::new(rng);
+    
+    for _ in 0..100 {
+        let pubkey = privkey.pubkey(rng);
+        let comm = pubkey.hash();
+        let string = comm.to_string();
+        let newcomm = Digest256::from_string(&string).unwrap();
+
+        assert!(comm == newcomm);
+    }
+}
