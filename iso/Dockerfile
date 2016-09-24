@@ -68,9 +68,8 @@ USER builder
 
 # Grab the `alpine-iso` package.
 WORKDIR /home/builder/
-RUN git clone git://git.alpinelinux.org/alpine-iso
+ADD alpine-iso /home/builder/alpine-iso/
 WORKDIR /home/builder/alpine-iso/
-RUN git checkout 260faac06f5e8233bb59876a33cdcb9d1d24313a
 
 # Grab the configurations for the ISOs
 ADD alpine-compute.conf.mk /home/builder/alpine-iso/alpine-compute.conf.mk
