@@ -24,7 +24,7 @@ pub fn prompt(s: &str) -> String {
 
         if io::stdin().read_line(&mut input).is_ok() {
             println!("Please wait...");
-            return input;
+            return (&input[0..input.len()-1]).into();
         }
     }
 }
