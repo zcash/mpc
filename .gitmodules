@@ -1,3 +1,7 @@
 [submodule "snark/libsnark"]
 	path = snark/libsnark
 	url = https://github.com/zcash/libsnark.git
+
+[submodule "iso/alpine-iso"]
+	path = iso/alpine-iso
+	url = git://git.alpinelinux.org/alpine-iso
