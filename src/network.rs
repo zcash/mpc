@@ -190,6 +190,8 @@ fn main() {
     drop(stage3_before);
     drop(stage3_after);
 
+    eject();
+
     loop {
         prompt("Done! You can now destroy the other machine. :)");
     }
