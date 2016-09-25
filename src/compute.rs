@@ -26,10 +26,10 @@ pub const THREADS: usize = 8;
 pub const DIRECTORY_PREFIX: &'static str = "/home/sean/mpc_trialrun/compute/";
 
 fn main() {
-    //prompt("Press [ENTER] when you're ready to perform diagnostics of the DVD drive.");
-    //disable_modloop_unmount();
-    //perform_diagnostics();
-    //prompt("Diagnostics complete. Press [ENTER] when you're ready to begin the ceremony.");
+    prompt("Press [ENTER] when you're ready to perform diagnostics of the DVD drive.");
+    disable_modloop_unmount();
+    perform_diagnostics();
+    prompt("Diagnostics complete. Press [ENTER] when you're ready to begin the ceremony.");
 
     println!("Constructing personal keypair...");
     let (privkey, pubkey, comm) = {
