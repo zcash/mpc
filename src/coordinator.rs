@@ -34,7 +34,6 @@ use bincode::SizeLimit::Infinite;
 use bincode::rustc_serialize::{encode_into, decode_from};
 use std::time::Duration;
 
-const USE_DUMMY_CS: bool = true;
 const LISTEN_ADDR: &'static str = "0.0.0.0:65530";
 const PLAYERS: usize = 3;
 pub const THREADS: usize = 8;

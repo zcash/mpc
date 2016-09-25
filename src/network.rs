@@ -13,14 +13,11 @@ use self::consts::*;
 mod dvd;
 use self::dvd::*;
 
-use bn::*;
-use rand::{SeedableRng, Rng};
-use std::io::{Read, Write, self};
+use rand::Rng;
+use std::io::Read;
 use std::net::{TcpStream};
 use std::thread;
 use std::time::Duration;
-use std::fs::{self, File};
-use std::process::Command;
 use bincode::SizeLimit::Infinite;
 use bincode::rustc_serialize::{encode_into, decode_from};
 use rustc_serialize::{Decodable, Encodable};
@@ -49,11 +46,11 @@ impl ConnectionHandler {
     }
 
     fn handshake(&mut self) {
-        self.s.set_read_timeout(Some(Duration::from_secs(60)));
-        self.s.set_write_timeout(Some(Duration::from_secs(60)));
-        self.s.write(&NETWORK_MAGIC);
-        self.s.write(&self.peerid);
-        self.s.flush();
+        let _ = self.s.set_read_timeout(Some(Duration::from_secs(60)));
+        let _ = self.s.set_write_timeout(Some(Duration::from_secs(60)));
+        let _ = self.s.write(&NETWORK_MAGIC);
+        let _ = self.s.write(&self.peerid);
+        let _ = self.s.flush();
     }
 
     fn do_with_stream<T, E, F: Fn(&mut TcpStream) -> Result<T, E>>(&mut self, cb: F) -> T
@@ -106,7 +103,7 @@ impl ConnectionHandler {
 }
 
 fn main() {
-    let mut comm;
+    let comm;
     {
         let mut entered_wrong = false;
         loop {
@@ -127,7 +124,7 @@ fn main() {
     handler.write(&comm);
 
     println!("Waiting to receive disc 'A' from coordinator server...");
-    let mut stage1_before = handler.read::<Stage1Contents>();
+    let stage1_before = handler.read::<Stage1Contents>();
 
     let (pubkey, stage1_after): (PublicKey, Stage1Contents) = exchange_disc(
         "A",
@@ -151,7 +148,7 @@ fn main() {
     drop(stage1_after);
 
     println!("Waiting to receive disc 'C' from coordinator server...");
-    let mut stage2_before = handler.read::<Stage2Contents>();
+    let stage2_before = handler.read::<Stage2Contents>();
 
     let stage2_after: Stage2Contents = exchange_disc(
         "C",
@@ -171,7 +168,7 @@ fn main() {
     drop(stage2_after);
 
     println!("Waiting to receive disc 'E' from coordinator server...");
-    let mut stage3_before = handler.read::<Stage3Contents>();
+    let stage3_before = handler.read::<Stage3Contents>();
 
     let stage3_after: Stage3Contents = exchange_disc(
         "E",

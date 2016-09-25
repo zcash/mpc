@@ -9,6 +9,9 @@ extern crate byteorder;
 
 mod protocol;
 
+mod consts;
+use self::consts::*;
+
 use std::fs::File;
 use std::io::{Read, Write};
 use protocol::*;
@@ -17,7 +20,6 @@ use snark::*;
 use bincode::SizeLimit::Infinite;
 use bincode::rustc_serialize::{encode_into, decode_from};
 
-const USE_DUMMY_CS: bool = true;
 pub const THREADS: usize = 8;
 
 fn main() {
