@@ -8,7 +8,10 @@ use snark::*;
 use rustc_serialize::{Encodable, Encoder, Decodable, Decoder};
 
 #[derive(Clone, PartialEq, Eq)]
-pub struct PublicKey {
+pub struct PublicKey(PublicKeyInner);
+
+#[derive(Clone, PartialEq, Eq, RustcEncodable, RustcDecodable)]
+struct PublicKeyInner {
     f1: G2, // f1
     f1_rho_a: G2, // f1 * rho_a
     f1_rho_a_alpha_a: G2, // f1 * rho_a * alpha_a
@@ -48,31 +51,31 @@ impl PublicKey {
     }
 
     fn nizks_are_valid(&self) -> bool {
-        self.f3_tau.verify_nizk(&self.nizk_tau) &&
-        self.f4_alpha_a.verify_nizk(&self.nizk_alpha_a) &&
-        self.alpha_b_g2().verify_nizk(&self.nizk_alpha_b) &&
-        self.f5_alpha_c.verify_nizk(&self.nizk_alpha_c) &&
-        self.rho_a_g2().verify_nizk(&self.nizk_rho_a) &&
-        self.f6_rho_b.verify_nizk(&self.nizk_rho_b) &&
-        self.beta_g2().verify_nizk(&self.nizk_beta) &&
-        self.f8_gamma.verify_nizk(&self.nizk_gamma)
+        self.0.f3_tau.verify_nizk(&self.0.nizk_tau) &&
+        self.0.f4_alpha_a.verify_nizk(&self.0.nizk_alpha_a) &&
+        self.alpha_b_g2().verify_nizk(&self.0.nizk_alpha_b) &&
+        self.0.f5_alpha_c.verify_nizk(&self.0.nizk_alpha_c) &&
+        self.rho_a_g2().verify_nizk(&self.0.nizk_rho_a) &&
+        self.0.f6_rho_b.verify_nizk(&self.0.nizk_rho_b) &&
+        self.beta_g2().verify_nizk(&self.0.nizk_beta) &&
+        self.0.f8_gamma.verify_nizk(&self.0.nizk_gamma)
     }
 
     fn is_well_formed(&self) -> bool {
-        !self.f1.is_zero() &&
-        !self.f1_rho_a.is_zero() &&
-        !self.f1_rho_a_alpha_a.is_zero() &&
-        !self.f1_rho_a_rho_b.is_zero() &&
-        !self.f1_rho_a_rho_b_alpha_c.is_zero() &&
-        !self.f1_rho_a_rho_b_alpha_b.is_zero() &&
-        !self.f2.is_zero() &&
-        !self.f2_beta.is_zero() &&
-        !self.f2_beta_gamma.is_zero() &&
-        same_power(&self.f4_alpha_a, &Spair::new(self.f1_rho_a, self.f1_rho_a_alpha_a).unwrap()) &&
-        same_power(&self.f5_alpha_c, &Spair::new(self.f1_rho_a_rho_b, self.f1_rho_a_rho_b_alpha_c).unwrap()) &&
-        same_power(&self.f6_rho_b, &Spair::new(self.f1_rho_a, self.f1_rho_a_rho_b).unwrap()) &&
-        same_power(&self.f7_rho_a_rho_b, &Spair::new(self.f1, self.f1_rho_a_rho_b).unwrap()) &&
-        same_power(&self.f8_gamma, &Spair::new(self.f2_beta, self.f2_beta_gamma).unwrap())
+        !self.0.f1.is_zero() &&
+        !self.0.f1_rho_a.is_zero() &&
+        !self.0.f1_rho_a_alpha_a.is_zero() &&
+        !self.0.f1_rho_a_rho_b.is_zero() &&
+        !self.0.f1_rho_a_rho_b_alpha_c.is_zero() &&
+        !self.0.f1_rho_a_rho_b_alpha_b.is_zero() &&
+        !self.0.f2.is_zero() &&
+        !self.0.f2_beta.is_zero() &&
+        !self.0.f2_beta_gamma.is_zero() &&
+        same_power(&self.0.f4_alpha_a, &Spair::new(self.0.f1_rho_a, self.0.f1_rho_a_alpha_a).unwrap()) &&
+        same_power(&self.0.f5_alpha_c, &Spair::new(self.0.f1_rho_a_rho_b, self.0.f1_rho_a_rho_b_alpha_c).unwrap()) &&
+        same_power(&self.0.f6_rho_b, &Spair::new(self.0.f1_rho_a, self.0.f1_rho_a_rho_b).unwrap()) &&
+        same_power(&self.0.f7_rho_a_rho_b, &Spair::new(self.0.f1, self.0.f1_rho_a_rho_b).unwrap()) &&
+        same_power(&self.0.f8_gamma, &Spair::new(self.0.f2_beta, self.0.f2_beta_gamma).unwrap())
     }
 
     pub fn hash(&self) -> Digest256 {
@@ -80,156 +83,82 @@ impl PublicKey {
     }
 
     pub fn tau_g2(&self) -> Spair<G2> {
-        self.f3_tau.clone()
+        self.0.f3_tau.clone()
     }
 
     pub fn alpha_a_g1(&self) -> Spair<G1> {
-        self.f4_alpha_a.clone()
+        self.0.f4_alpha_a.clone()
     }
 
     pub fn alpha_c_g1(&self) -> Spair<G1> {
-        self.f5_alpha_c.clone()
+        self.0.f5_alpha_c.clone()
     }
 
     pub fn rho_b_g1(&self) -> Spair<G1> {
-        self.f6_rho_b.clone()
+        self.0.f6_rho_b.clone()
     }
 
     pub fn rho_a_rho_b_g1(&self) -> Spair<G1> {
-        self.f7_rho_a_rho_b.clone()
+        self.0.f7_rho_a_rho_b.clone()
     }
 
     pub fn gamma_g1(&self) -> Spair<G1> {
-        self.f8_gamma.clone()
+        self.0.f8_gamma.clone()
     }
 
     pub fn alpha_b_g2(&self) -> Spair<G2> {
-        Spair::new(self.f1_rho_a_rho_b, self.f1_rho_a_rho_b_alpha_b).unwrap()
+        Spair::new(self.0.f1_rho_a_rho_b, self.0.f1_rho_a_rho_b_alpha_b).unwrap()
     }
 
     pub fn rho_a_g2(&self) -> Spair<G2> {
-        Spair::new(self.f1, self.f1_rho_a).unwrap()
+        Spair::new(self.0.f1, self.0.f1_rho_a).unwrap()
     }
 
     pub fn rho_b_g2(&self) -> Spair<G2> {
-        Spair::new(self.f1_rho_a, self.f1_rho_a_rho_b).unwrap()
+        Spair::new(self.0.f1_rho_a, self.0.f1_rho_a_rho_b).unwrap()
     }
 
     pub fn alpha_a_rho_a_g2(&self) -> Spair<G2> {
-        Spair::new(self.f1, self.f1_rho_a_alpha_a).unwrap()
+        Spair::new(self.0.f1, self.0.f1_rho_a_alpha_a).unwrap()
     }
 
     pub fn alpha_b_rho_b_g2(&self) -> Spair<G2> {
-        Spair::new(self.f1_rho_a, self.f1_rho_a_rho_b_alpha_b).unwrap()
+        Spair::new(self.0.f1_rho_a, self.0.f1_rho_a_rho_b_alpha_b).unwrap()
     }
 
     pub fn rho_a_rho_b_g2(&self) -> Spair<G2> {
-        Spair::new(self.f1, self.f1_rho_a_rho_b).unwrap()
+        Spair::new(self.0.f1, self.0.f1_rho_a_rho_b).unwrap()
     }
 
     pub fn alpha_c_rho_a_rho_b_g2(&self) -> Spair<G2> {
-        Spair::new(self.f1, self.f1_rho_a_rho_b_alpha_c).unwrap()
+        Spair::new(self.0.f1, self.0.f1_rho_a_rho_b_alpha_c).unwrap()
     }
 
     pub fn beta_g2(&self) -> Spair<G2> {
-        Spair::new(self.f2, self.f2_beta).unwrap()
+        Spair::new(self.0.f2, self.0.f2_beta).unwrap()
     }
 
     pub fn beta_gamma_g2(&self) -> Spair<G2> {
-        Spair::new(self.f2, self.f2_beta_gamma).unwrap()
+        Spair::new(self.0.f2, self.0.f2_beta_gamma).unwrap()
     }
 }
 
 impl Encodable for PublicKey {
     fn encode<S: Encoder>(&self, s: &mut S) -> Result<(), S::Error> {
-        try!(self.f1.encode(s));
-        try!(self.f1_rho_a.encode(s));
-        try!(self.f1_rho_a_alpha_a.encode(s));
-        try!(self.f1_rho_a_rho_b.encode(s));
-        try!(self.f1_rho_a_rho_b_alpha_c.encode(s));
-        try!(self.f1_rho_a_rho_b_alpha_b.encode(s));
-        try!(self.f2.encode(s));
-        try!(self.f2_beta.encode(s));
-        try!(self.f2_beta_gamma.encode(s));
-
-        try!(self.f3_tau.encode(s));
-        try!(self.f4_alpha_a.encode(s));
-        try!(self.f5_alpha_c.encode(s));
-        try!(self.f6_rho_b.encode(s));
-        try!(self.f7_rho_a_rho_b.encode(s));
-        try!(self.f8_gamma.encode(s));
-
-        try!(self.nizk_tau.encode(s));
-        try!(self.nizk_alpha_a.encode(s));
-        try!(self.nizk_alpha_b.encode(s));
-        try!(self.nizk_alpha_c.encode(s));
-        try!(self.nizk_rho_a.encode(s));
-        try!(self.nizk_rho_b.encode(s));
-        try!(self.nizk_beta.encode(s));
-        try!(self.nizk_gamma.encode(s));
-
-        Ok(())
+        self.0.encode(s)
     }
 }
 
 impl Decodable for PublicKey {
     fn decode<S: Decoder>(s: &mut S) -> Result<PublicKey, S::Error> {
-        let f1 = try!(G2::decode(s));
-        let f1_rho_a = try!(G2::decode(s));
-        let f1_rho_a_alpha_a = try!(G2::decode(s));
-        let f1_rho_a_rho_b = try!(G2::decode(s));
-        let f1_rho_a_rho_b_alpha_c = try!(G2::decode(s));
-        let f1_rho_a_rho_b_alpha_b = try!(G2::decode(s));
-        let f2 = try!(G2::decode(s));
-        let f2_beta = try!(G2::decode(s));
-        let f2_beta_gamma = try!(G2::decode(s));
-
-        let f3_tau = try!(Spair::decode(s));
-        let f4_alpha_a = try!(Spair::decode(s));
-        let f5_alpha_c = try!(Spair::decode(s));
-        let f6_rho_b = try!(Spair::decode(s));
-        let f7_rho_a_rho_b = try!(Spair::decode(s));
-        let f8_gamma = try!(Spair::decode(s));
-
-        let nizk_tau = try!(Nizk::decode(s));
-        let nizk_alpha_a = try!(Nizk::decode(s));
-        let nizk_alpha_b = try!(Nizk::decode(s));
-        let nizk_alpha_c = try!(Nizk::decode(s));
-        let nizk_rho_a = try!(Nizk::decode(s));
-        let nizk_rho_b = try!(Nizk::decode(s));
-        let nizk_beta = try!(Nizk::decode(s));
-        let nizk_gamma = try!(Nizk::decode(s));
-
-        let perhaps_valid = PublicKey {
-            f1: f1,
-            f1_rho_a: f1_rho_a,
-            f1_rho_a_alpha_a: f1_rho_a_alpha_a,
-            f1_rho_a_rho_b: f1_rho_a_rho_b,
-            f1_rho_a_rho_b_alpha_c: f1_rho_a_rho_b_alpha_c,
-            f1_rho_a_rho_b_alpha_b: f1_rho_a_rho_b_alpha_b,
-            f2: f2,
-            f2_beta: f2_beta,
-            f2_beta_gamma: f2_beta_gamma,
-            f3_tau: f3_tau,
-            f4_alpha_a: f4_alpha_a,
-            f5_alpha_c: f5_alpha_c,
-            f6_rho_b: f6_rho_b,
-            f7_rho_a_rho_b: f7_rho_a_rho_b,
-            f8_gamma: f8_gamma,
-            nizk_tau: nizk_tau,
-            nizk_alpha_a: nizk_alpha_a,
-            nizk_alpha_b: nizk_alpha_b,
-            nizk_alpha_c: nizk_alpha_c,
-            nizk_rho_a: nizk_rho_a,
-            nizk_rho_b: nizk_rho_b,
-            nizk_beta: nizk_beta,
-            nizk_gamma: nizk_gamma
-        };
+        let perhaps_valid = PublicKey(
+            try!(PublicKeyInner::decode(s))
+        );
 
         if perhaps_valid.is_valid() {
             Ok(perhaps_valid)
         } else {
-            Err(s.error("invalid s-pairs"))
+            Err(s.error("invalid public key"))
         }
     }
 }
@@ -334,7 +263,7 @@ impl PrivateKey {
         let nizk_beta = Nizk::new(rng, f2, self.beta);
         let nizk_gamma = f8_gamma.nizk(rng, self.gamma);
 
-        let tmp = PublicKey {
+        let tmp = PublicKey(PublicKeyInner {
             f1: f1,
             f1_rho_a: f1_rho_a,
             f1_rho_a_alpha_a: f1_rho_a_alpha_a,
@@ -360,7 +289,7 @@ impl PrivateKey {
             nizk_rho_b: nizk_rho_b,
             nizk_beta: nizk_beta,
             nizk_gamma: nizk_gamma
-        };
+        });
 
         assert!(tmp.is_valid());
 
@@ -415,20 +344,20 @@ fn pubkey_consistency() {
 
     assert!(pubkey.is_valid());
 
-    breaks_wf(&pubkey, |p| &mut p.f1, true);
-    breaks_wf(&pubkey, |p| &mut p.f1_rho_a, true);
-    breaks_wf(&pubkey, |p| &mut p.f1_rho_a_alpha_a, true);
-    breaks_wf(&pubkey, |p| &mut p.f1_rho_a_rho_b, true);
-    breaks_wf(&pubkey, |p| &mut p.f1_rho_a_rho_b_alpha_c, true);
-    breaks_wf(&pubkey, |p| &mut p.f2_beta, true);
-    breaks_wf(&pubkey, |p| &mut p.f2_beta_gamma, true);
+    breaks_wf(&pubkey, |p| &mut p.0.f1, true);
+    breaks_wf(&pubkey, |p| &mut p.0.f1_rho_a, true);
+    breaks_wf(&pubkey, |p| &mut p.0.f1_rho_a_alpha_a, true);
+    breaks_wf(&pubkey, |p| &mut p.0.f1_rho_a_rho_b, true);
+    breaks_wf(&pubkey, |p| &mut p.0.f1_rho_a_rho_b_alpha_c, true);
+    breaks_wf(&pubkey, |p| &mut p.0.f2_beta, true);
+    breaks_wf(&pubkey, |p| &mut p.0.f2_beta_gamma, true);
 
     // We only ever need beta (alone) in G2, so changing the
     // relationship between f2 and f2_beta cannot be
     // inconsistent
-    breaks_wf(&pubkey, |p| &mut p.f2, false);
+    breaks_wf(&pubkey, |p| &mut p.0.f2, false);
 
     // We only ever need alpha_b (alone) in G2 as well, so
     // f1_rho_a_rho_b_alpha_b cannot be inconsistent with other relationships
-    breaks_wf(&pubkey, |p| &mut p.f1_rho_a_rho_b_alpha_b, false);
+    breaks_wf(&pubkey, |p| &mut p.0.f1_rho_a_rho_b_alpha_b, false);
 }
