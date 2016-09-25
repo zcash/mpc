@@ -38,14 +38,23 @@ pub struct PublicKey {
 
 impl PublicKey {
     fn is_valid(&self) -> bool {
+        // Ensure that all the fields are well-formed, so we can
+        // safely form s-pairs out of them.
         self.is_well_formed() &&
+
+        // The NIZKs verify that the creator of the public key
+        // knows the secrets.
+        self.nizks_are_valid()
+    }
+
+    fn nizks_are_valid(&self) -> bool {
         self.f3_tau.verify_nizk(&self.nizk_tau) &&
         self.f4_alpha_a.verify_nizk(&self.nizk_alpha_a) &&
-        self.nizk_alpha_b.verify(self.f1_rho_a_rho_b, self.f1_rho_a_rho_b_alpha_b) &&
+        self.alpha_b_g2().verify_nizk(&self.nizk_alpha_b) &&
         self.f5_alpha_c.verify_nizk(&self.nizk_alpha_c) &&
-        self.nizk_rho_a.verify(self.f1, self.f1_rho_a) &&
+        self.rho_a_g2().verify_nizk(&self.nizk_rho_a) &&
         self.f6_rho_b.verify_nizk(&self.nizk_rho_b) &&
-        self.nizk_beta.verify(self.f2, self.f2_beta) &&
+        self.beta_g2().verify_nizk(&self.nizk_beta) &&
         self.f8_gamma.verify_nizk(&self.nizk_gamma)
     }
 
