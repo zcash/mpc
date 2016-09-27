@@ -14,7 +14,7 @@ mod dvd;
 use self::dvd::*;
 
 use rand::Rng;
-use std::io::Read;
+use std::io::{Read, Write};
 use std::net::{TcpStream};
 use std::thread;
 use std::time::Duration;
@@ -24,7 +24,7 @@ use rustc_serialize::{Decodable, Encodable};
 
 pub const THREADS: usize = 8;
 pub const DIRECTORY_PREFIX: &'static str = "/home/sean/mpc_trialrun/network/";
-const COORDINATOR_ADDR: &'static str = "127.0.0.1:65530";
+const COORDINATOR_ADDR: &'static str = "52.41.255.202:65530";
 
 struct ConnectionHandler {
     peerid: [u8; 8],
@@ -103,10 +103,10 @@ impl ConnectionHandler {
 }
 
 fn main() {
-    prompt("Press [ENTER] when you're ready to perform diagnostics of the DVD drive.");
-    disable_modloop_unmount();
-    perform_diagnostics();
-    prompt("Diagnostics complete. Press [ENTER] when you're ready to begin the ceremony.");
+    //prompt("Press [ENTER] when you're ready to perform diagnostics of the DVD drive.");
+    //disable_modloop_unmount();
+    //perform_diagnostics();
+    //prompt("Diagnostics complete. Press [ENTER] when you're ready to begin the ceremony.");
 
     let comm;
     {

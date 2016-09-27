@@ -20,7 +20,7 @@ use snark::*;
 use bincode::SizeLimit::Infinite;
 use bincode::rustc_serialize::{encode_into, decode_from};
 
-pub const THREADS: usize = 8;
+pub const THREADS: usize = 128;
 
 fn main() {
     let mut f = File::open("transcript").unwrap();

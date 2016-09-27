@@ -132,15 +132,17 @@ pub fn read_from_dvd(dvd_path: &str, local_path: &str) -> DvdStatus {
 pub fn disable_modloop_unmount() {
     Command::new("/etc/init.d/modloop")
              .arg("stop")
-             .output();
+             .output()
+             .unwrap();
 
-    thread::sleep(Duration::from_secs(10));
+    thread::sleep(Duration::from_secs(6));
 
-    Command::new("/usr/bin/umount")
+    Command::new("/bin/umount")
              .arg("/media/cdrom")
-             .output();
+             .output()
+             .unwrap();
 
-    thread::sleep(Duration::from_secs(10));
+    thread::sleep(Duration::from_secs(6));
 }
 
 pub fn eject() {
@@ -269,8 +271,6 @@ pub fn exchange_disc<
             },
             DvdStatus::Error => {
                 eject();
-                prompt(&format!("The disc you inserted may be corrupted. Burn it again \
-                                 on the other machine.\n\n{}", message));
             },
             DvdStatus::Blank => {
                 println!("Burning...");

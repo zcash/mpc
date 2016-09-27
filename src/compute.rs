@@ -23,7 +23,7 @@ use bincode::SizeLimit::Infinite;
 use bincode::rustc_serialize::{encode_into, decode_from};
 
 pub const THREADS: usize = 8;
-pub const DIRECTORY_PREFIX: &'static str = "/home/sean/mpc_trialrun/compute/";
+pub const DIRECTORY_PREFIX: &'static str = "/";
 
 fn main() {
     prompt("Press [ENTER] when you're ready to perform diagnostics of the DVD drive.");
