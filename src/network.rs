@@ -23,8 +23,8 @@ use bincode::rustc_serialize::{encode_into, decode_from};
 use rustc_serialize::{Decodable, Encodable};
 
 pub const THREADS: usize = 8;
-pub const DIRECTORY_PREFIX: &'static str = "/home/sean/mpc_trialrun/network/";
-const COORDINATOR_ADDR: &'static str = "52.41.255.202:65530";
+pub const DIRECTORY_PREFIX: &'static str = "/";
+const COORDINATOR_ADDR: &'static str = "mdr.z.cash:65530";
 
 struct ConnectionHandler {
     peerid: [u8; 8],
