@@ -1,0 +1,34 @@
+# Contributor:
+# Maintainer:
+pkgname=mpc_network
+pkgver=1.0.0
+pkgrel=0
+pkgdesc="MPC network node binary"
+url="https://z.cash/"
+arch="x86_64"
+license="MIT"
+depends="alpine-base xorriso"
+makedepends=""
+install=""
+subpackages=""
+replaces="alpine-base"
+source="mpc_network
+        inittab
+        mpc_network.rs
+        interfaces"
+builddir="$srcdir/"
+
+build() {
+        cd "$builddir"
+}
+
+package() {
+        cd "$builddir"
+        mkdir -p "$pkgdir"/bin/
+        mkdir -p "$pkgdir"/etc/
+        mkdir -p "$pkgdir"/etc/network/
+        cp mpc_network "$pkgdir"/bin/mpc_network
+        cp mpc_network.rs "$pkgdir"/bin/mpc_network.rs
+        cp inittab "$pkgdir"/etc/inittab
+        cp interfaces "$pkgdir"/etc/network/interfaces
+}

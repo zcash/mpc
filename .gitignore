@@ -4,4 +4,6 @@ pk
 vk
 transcript
 alpine-compute.iso
+alpine-network.iso
 iso/mpc_compute/mpc_compute.rs
+iso/mpc_network/mpc_network.rs

@@ -1,0 +1,7 @@
+#!/bin/sh
+
+clear
+cd /
+/etc/init.d/networking start && /bin/mpc_network.rs
+
+sleep 10000000

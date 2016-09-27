@@ -47,6 +47,11 @@ RUN chown -R builder:abuild /root/.abuild
 ADD mpc_compute /home/builder/mpc_compute/
 RUN chown -R builder:abuild /home/builder/mpc_compute/
 
+# Add the `mpc_network` package
+
+ADD mpc_network /home/builder/mpc_network/
+RUN chown -R builder:abuild /home/builder/mpc_network/
+
 # Run some setup as `builder`
 
 # Build the MPC "compute" package that runs at boot.
@@ -56,6 +61,17 @@ WORKDIR /home/builder/mpc_compute/
 
 RUN abuild checksum
 RUN abuild -r
+
+# Build the MPC "network" package that runs at boot.
+
+RUN rm /home/builder/packages/builder/x86_64/APKINDEX.tar.gz
+WORKDIR /home/builder/mpc_network/
+
+RUN abuild checksum
+RUN abuild -r
+
+# Move built packages into apks_custom.
+
 RUN cp -r /home/builder/packages/builder /home/builder/apks_custom/
 
 # Add the custom apks repository
@@ -74,9 +90,12 @@ WORKDIR /home/builder/alpine-iso/
 # Grab the configurations for the ISOs
 ADD alpine-compute.conf.mk /home/builder/alpine-iso/alpine-compute.conf.mk
 ADD alpine-compute.packages /home/builder/alpine-iso/alpine-compute.packages
+ADD alpine-network.conf.mk /home/builder/alpine-iso/alpine-network.conf.mk
+ADD alpine-network.packages /home/builder/alpine-iso/alpine-network.packages
 
 # Build the ISOs
 
 USER root
 RUN make BOOT_OPTS=pkgs=mpc_compute PROFILE=alpine-compute iso
+RUN make BOOT_OPTS=pkgs=mpc_network PROFILE=alpine-network iso
 RUN mkdir -p /home/builder/target/
