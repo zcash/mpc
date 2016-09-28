@@ -40,7 +40,7 @@ ENV PATH=/home/rust/.cargo/bin:/usr/local/musl/bin:/usr/local/bin:/usr/bin:/bin
 # `--target` to musl so that our users don't need to keep overriding it
 # manually.
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y && \
-    rustup default stable && \
+    rustup default nightly-2016-09-28 && \
     rustup target add x86_64-unknown-linux-musl
 ADD cargo-config.toml /home/rust/.cargo/config
 
