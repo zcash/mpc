@@ -21,6 +21,8 @@ pub const THREADS: usize = 8;
 pub const DIRECTORY_PREFIX: &'static str = "/";
 
 fn entropy_from_kernel(seed: &mut [u32; 8]) {
+    println!("Please wait...");
+
     let mut linux_rng = rand::read::ReadRng::new(File::open("/dev/random").unwrap());
 
     for i in 0..8 {
