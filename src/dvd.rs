@@ -71,6 +71,8 @@ pub fn write_to_dvd(dvd_path: &str, local_path: &str) -> bool {
                          .arg(local_path)
                          .arg("--")
                          .arg("-commit")
+                         .arg("-close")
+                         .arg("on")
                          .output()
                          .expect("failed to execute xorriso");
 
