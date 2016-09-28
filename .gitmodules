@@ -5,3 +5,6 @@
 [submodule "iso/alpine-iso"]
 	path = iso/alpine-iso
 	url = git://git.alpinelinux.org/alpine-iso
+[submodule "iso/musl-builder/musl"]
+	path = iso/musl-builder/musl
+	url = git://git.musl-libc.org/musl

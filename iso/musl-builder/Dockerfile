@@ -48,29 +48,13 @@ ADD cargo-config.toml /home/rust/.cargo/config
 # clean up when you're done.
 WORKDIR /home/rust/libs
 
+ADD musl /home/rust/libs/musl
+
 # Build the musl-libc toolchain, which installs itself in /usr/local/musl.
-RUN sudo chown rust:rust /home/rust/libs && \
-    git clone git://git.musl-libc.org/musl && cd musl && \
+RUN sudo chown -R rust:rust /home/rust/libs && \
+    cd musl && \
     ./configure && make && sudo make install && \
     cd .. && rm -rf musl
-
-# Build a static library version of OpenSSL using musl-libc.  This is
-# needed by the popular Rust `hyper` crate.
-RUN VERS=1.0.2g && \
-    curl -O https://www.openssl.org/source/openssl-$VERS.tar.gz && \
-    tar xvzf openssl-$VERS.tar.gz && cd openssl-$VERS && \
-    env CC=musl-gcc ./config --prefix=/usr/local/musl && \
-    env C_INCLUDE_PATH=/usr/local/musl/include/ make depend && \
-    make && sudo make install && \
-    cd .. && rm -rf openssl-$VERS.tar.gz openssl-$VERS
-ENV OPENSSL_INCLUDE_DIR=/usr/local/musl/include/ \
-    DEP_OPENSSL_INCLUDE=/usr/local/musl/include/ \
-    OPENSSL_LIB_DIR=/usr/local/musl/lib/ \
-    OPENSSL_STATIC=1
-
-# (Please feel free to submit pull requests for musl-libc builds of other C
-# libraries needed by the most popular and common Rust crates, to avoid
-# everybody needing to build them manually.)
 
 # Expect our source code to live in /home/rust/src.  We'll run the build as
 # user `rust`, which will be uid 1000, gid 1000 outside the container.
