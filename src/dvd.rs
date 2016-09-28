@@ -246,7 +246,7 @@ pub fn exchange_disc<
     let newdisc_remotepath = &format!("disc{}", our_disc);
     {
         let mut newdisc = File::create(newdisc_localpath).unwrap();
-        our_cb(&mut newdisc);
+        our_cb(&mut newdisc).ok().unwrap();
     }
 
     let message = &format!("Please insert a blank DVD to burn disc '{}' or\n\
@@ -298,7 +298,7 @@ pub fn write_disc<
     let newdisc_remotepath = &format!("disc{}", our_disc);
     {
         let mut newdisc = File::create(newdisc_localpath).unwrap();
-        our_cb(&mut newdisc);
+        our_cb(&mut newdisc).ok().unwrap();
     }
 
     loop {

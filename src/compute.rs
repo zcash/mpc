@@ -12,18 +12,36 @@ use self::protocol::*;
 mod dvd;
 use self::dvd::*;
 
-use bn::*;
 use rand::{SeedableRng, Rng};
-use std::io::{Read, Write, self};
-use std::thread;
-use std::time::Duration;
-use std::fs::{self, File};
-use std::process::Command;
+use std::fs::{File};
 use bincode::SizeLimit::Infinite;
 use bincode::rustc_serialize::{encode_into, decode_from};
 
 pub const THREADS: usize = 8;
 pub const DIRECTORY_PREFIX: &'static str = "/";
+
+fn entropy_from_kernel(seed: &mut [u32; 8]) {
+    let mut linux_rng = rand::read::ReadRng::new(File::open("/dev/random").unwrap());
+
+    for i in 0..8 {
+        let n: u32 = linux_rng.gen();
+        seed[i] = seed[i] ^ n;
+    }
+}
+
+fn entropy_from_user(seed: &mut [u32; 8]) {
+    use byteorder::{ByteOrder, LittleEndian};
+    use blake2_rfc::blake2s::blake2s;
+
+    let entropy = prompt("Please type a random string of text and then press [ENTER] to provide additional entropy.");
+
+    let hash = blake2s(32, &[], entropy.as_bytes());
+    let hash = hash.as_bytes();
+
+    for i in 0..8 {
+        seed[i] = seed[i] ^ LittleEndian::read_u32(&hash[(i*4)..]);
+    }
+}
 
 fn main() {
     prompt("Press [ENTER] when you're ready to perform diagnostics of the DVD drive.");
@@ -31,18 +49,12 @@ fn main() {
     perform_diagnostics();
     prompt("Diagnostics complete. Press [ENTER] when you're ready to begin the ceremony.");
 
-    println!("Constructing personal keypair...");
     let (privkey, pubkey, comm) = {
-        // ChaCha20 seed
-        let mut seed: [u32; 8];
-        {
-            // Obtain 256 bits of random data from the kernel.
-            // 
-            // TODO CHANGE THIS TO RANDOM NOT URANDOM
-            // 
-            let mut linux_rng = rand::read::ReadRng::new(File::open("/dev/urandom").unwrap());
-            seed = linux_rng.gen();
-        }
+        let mut seed: [u32; 8] = [0; 8];
+        entropy_from_kernel(&mut seed);
+        entropy_from_user(&mut seed);
+        entropy_from_kernel(&mut seed);
+
         let mut chacha_rng = rand::chacha::ChaChaRng::from_seed(&seed);
 
         let privkey = PrivateKey::new(&mut chacha_rng);
