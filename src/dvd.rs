@@ -65,6 +65,8 @@ impl Drop for TemporaryFile {
 }
 
 pub fn write_to_dvd(dvd_path: &str, local_path: &str) -> bool {
+    println!("Burning...");
+
     let output = Command::new("/usr/bin/xorriso")
                          .arg("-outdev")
                          .arg("/dev/sr0")
@@ -271,13 +273,18 @@ pub fn exchange_disc<
                          our_disc));
     }
 
-    let message = &format!("Please insert a blank DVD to burn disc '{}' or\n\
-                            insert disc '{}' if you have it. Then press [ENTER].",
-                            our_disc, their_disc);
-
-    prompt(message);
+    let mut already_burned = false;
 
     loop {
+        if already_burned {
+            prompt(&format!("Insert disc '{}' from the other machine. If the burn of disc '{}' failed,
+                             insert another blank disc to burn it again. Press [ENTER] when ready.",
+                            their_disc, our_disc));
+        } else {
+            prompt(&format!("Please insert a blank DVD to burn disc '{}'. Then press [ENTER].",
+                            our_disc));
+        }
+
         match read_from_dvd(&format!("disc{}", their_disc), &format!("{}disc{}", ::DIRECTORY_PREFIX, their_disc)) {
             DvdStatus::File(mut f) => {
                 let h = hash_of_file(&mut f);
@@ -296,19 +303,19 @@ pub fn exchange_disc<
                     },
                     Err(_) => {
                         eject();
-                        prompt(&format!("The disc you inserted may be corrupted. Burn it again \
-                                         on the other machine.\n\n{}", message));
+                        prompt(&format!("The disc '{}' you inserted may be corrupted. Burn it again \
+                                         on the other machine. Then insert the new disc '{}' and \
+                                         press [ENTER].", their_disc, their_disc));
                     }
                 }
             },
             DvdStatus::Error => {
                 eject();
-                prompt(message);
             },
             DvdStatus::Blank => {
-                println!("Burning...");
                 write_to_dvd(newdisc_remotepath, newdisc_localpath);
                 eject();
+                already_burned = true;
 
                 prompt(&format!("Disc {} has been burned. Transfer it to the other machine.\n\n\
                                  Press [ENTER] to continue.", our_disc));
@@ -342,10 +349,18 @@ pub fn write_disc<
                          our_disc));
     }
 
+    let mut already_burned = false;
+
     loop {
-        prompt(&format!("Please insert a blank DVD to burn disc '{}'.\n\n\
-                         Then press [ENTER] to continue.",
-                        our_disc));
+        if already_burned {
+            prompt(&format!("If the burn of disc '{}' failed, you can insert another blank\n\
+                             DVD to burn again. Then press [ENTER] to continue.",
+                            our_disc));
+        } else {
+            prompt(&format!("Please insert a blank DVD to burn disc '{}'.\n\n\
+                             Then press [ENTER] to continue.",
+                            our_disc));
+        }
 
         match read_from_dvd(newdisc_remotepath, newdisc_localpath) {
             DvdStatus::Blank => {
@@ -353,6 +368,7 @@ pub fn write_disc<
 
                 write_to_dvd(newdisc_remotepath, newdisc_localpath);
                 eject();
+                already_burned = true;
 
                 prompt(&format!("Disc {} has been burned. Transfer it to the other machine.\n\n\
                                  Press [ENTER] to continue.", our_disc));
