@@ -317,8 +317,8 @@ pub fn exchange_disc<
                 eject();
                 already_burned = true;
 
-                prompt(&format!("Disc {} has been burned. Transfer it to the other machine.\n\n\
-                                 Press [ENTER] to continue.", our_disc));
+                prompt(&format!("Disc {} has been burned. Label the disc and transfer it to the\n\
+                                 other machine. Press [ENTER] when the drive is clear.", our_disc));
             }
         }
     }
@@ -370,8 +370,8 @@ pub fn write_disc<
                 eject();
                 already_burned = true;
 
-                prompt(&format!("Disc {} has been burned. Transfer it to the other machine.\n\n\
-                                 Press [ENTER] to continue.", our_disc));
+                prompt(&format!("Disc {} has been burned. Label the disc and transfer it to the\n\
+                                 other machine. Press [ENTER] when the drive is clear.", our_disc));
             },
             _ => {}
         }
