@@ -3,6 +3,7 @@ use std::thread;
 use std::time::Duration;
 use std::fs::{self, File};
 use std::process::Command;
+use protocol::*;
 
 const REMOTEPATH_ALPINE_RELEASE: &'static str = ".alpine-release";
 const REMOTEPATH_TEST_BURN: &'static str = "mpc_testburn";
@@ -227,6 +228,19 @@ pub fn perform_diagnostics() {
             prompt("Try again! Please remove the DVD from the drive. Press [ENTER] when the drive is clear.");
         }
     }
+}
+
+pub fn hash_of_file(f: &mut File) -> Digest256 {
+    use blake2_rfc::blake2s::blake2s;
+
+    let mut contents = vec![];
+
+    f.read_to_end(&mut contents).unwrap();
+
+    let mut output = [0; 32];
+    output.copy_from_slice(&blake2s(32, &[], &contents).as_bytes());
+
+    Digest256(output)
 }
 
 pub fn exchange_disc<

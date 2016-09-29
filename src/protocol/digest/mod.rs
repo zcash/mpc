@@ -11,7 +11,7 @@ use self::base58::{ToBase58, FromBase58};
 
 macro_rules! digest_impl {
     ($name:ident, $bytes:expr, $hash:ident) => {
-        pub struct $name([u8; $bytes]);
+        pub struct $name(pub [u8; $bytes]);
 
         impl $name {
             pub fn from<E: Encodable>(obj: &E) -> Option<Self> {
