@@ -35,6 +35,13 @@ pub struct TemporaryFile {
     f: Option<File>
 }
 
+impl TemporaryFile {
+    pub fn reset(&mut self) {
+        self.f = None;
+        self.f = Some(File::open(&self.path).unwrap());
+    }
+}
+
 impl Read for TemporaryFile {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         self.f.as_mut().unwrap().read(buf)
@@ -230,7 +237,7 @@ pub fn perform_diagnostics() {
     }
 }
 
-pub fn hash_of_file(f: &mut File) -> Digest256 {
+pub fn hash_of_file<R: Read>(f: &mut R) -> Digest256 {
     use blake2_rfc::blake2s::blake2s;
 
     let mut contents = vec![];
@@ -262,6 +269,16 @@ pub fn exchange_disc<
         let mut newdisc = File::create(newdisc_localpath).unwrap();
         our_cb(&mut newdisc).ok().unwrap();
     }
+    {
+        let mut newdisc = File::open(newdisc_localpath).unwrap();
+        let h = hash_of_file(&mut newdisc);
+
+        prompt(&format!("Please write down and publish the string: {}\n\
+                         It is the hash of disc '{}'.\n\n\
+                         Press [ENTER] when you've written it down.",
+                         h.to_string(),
+                         our_disc));
+    }
 
     let message = &format!("Please insert a blank DVD to burn disc '{}' or\n\
                             insert disc '{}' if you have it. Then press [ENTER].",
@@ -272,6 +289,14 @@ pub fn exchange_disc<
     loop {
         match read_from_dvd(&format!("disc{}", their_disc), &format!("{}disc{}", ::DIRECTORY_PREFIX, their_disc)) {
             DvdStatus::File(mut f) => {
+                let h = hash_of_file(&mut f);
+                prompt(&format!("Please write down and publish the string: {}\n\
+                                 It is the hash of disc '{}'.\n\n\
+                                 Press [ENTER] when you've written it down.",
+                                 h.to_string(),
+                                 their_disc));
+                f.reset();
+
                 match their_cb(&mut f) {
                     Ok(data) => {
                         let _ = fs::remove_file(newdisc_localpath);
@@ -287,6 +312,7 @@ pub fn exchange_disc<
             },
             DvdStatus::Error => {
                 eject();
+                prompt(message);
             },
             DvdStatus::Blank => {
                 println!("Burning...");
@@ -314,6 +340,16 @@ pub fn write_disc<
         let mut newdisc = File::create(newdisc_localpath).unwrap();
         our_cb(&mut newdisc).ok().unwrap();
     }
+    {
+        let mut newdisc = File::open(newdisc_localpath).unwrap();
+        let h = hash_of_file(&mut newdisc);
+
+        prompt(&format!("Please write down and publish the string: {}\n\
+                         It is the hash of disc '{}'.\n\n\
+                         Press [ENTER] when you've written it down.",
+                         h.to_string(),
+                         our_disc));
+    }
 
     loop {
         prompt(&format!("Please insert a blank DVD to burn disc '{}'.\n\n\
@@ -336,11 +372,19 @@ pub fn write_disc<
 }
 
 pub fn read_disc<T, R, F: Fn(&mut TemporaryFile) -> Result<T, R>>(name: &str, message: &str, cb: F) -> T {
-    prompt(&format!("{}", message));
+    prompt(message);
 
     loop {
         match read_from_dvd(&format!("disc{}", name), &format!("{}disc{}", ::DIRECTORY_PREFIX, name)) {
             DvdStatus::File(mut f) => {
+                let h = hash_of_file(&mut f);
+                prompt(&format!("Please write down and publish the string: {}\n\
+                                 It is the hash of disc '{}'.\n\n\
+                                 Press [ENTER] when you've written it down.",
+                                 h.to_string(),
+                                 name));
+                f.reset();
+
                 match cb(&mut f) {
                     Ok(data) => {
                         return data;
@@ -354,8 +398,7 @@ pub fn read_disc<T, R, F: Fn(&mut TemporaryFile) -> Result<T, R>>(name: &str, me
             },
             DvdStatus::Error => {
                 eject();
-                prompt(&format!("Could not read from the disc, try again or perhaps the \
-                                 disc is corrupted.\n\n{}", message));
+                prompt(message);
             },
             DvdStatus::Blank => {
                 eject();
