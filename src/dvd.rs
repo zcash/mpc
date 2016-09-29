@@ -238,16 +238,7 @@ pub fn perform_diagnostics() {
 }
 
 pub fn hash_of_file<R: Read>(f: &mut R) -> Digest256 {
-    use blake2_rfc::blake2s::blake2s;
-
-    let mut contents = vec![];
-
-    f.read_to_end(&mut contents).unwrap();
-
-    let mut output = [0; 32];
-    output.copy_from_slice(&blake2s(32, &[], &contents).as_bytes());
-
-    Digest256(output)
+    Digest256::from_reader(f)
 }
 
 pub fn exchange_disc<

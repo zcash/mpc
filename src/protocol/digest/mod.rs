@@ -1,5 +1,6 @@
 use bn::Fr;
 
+use std::io::Read;
 use rustc_serialize::{Encodable, Encoder, Decodable, Decoder};
 use bincode::SizeLimit::Infinite;
 use bincode::rustc_serialize::encode;
@@ -77,6 +78,19 @@ impl Digest512 {
 }
 
 impl Digest256 {
+    pub fn from_reader<R: Read>(r: &mut R) -> Digest256 {
+        use blake2_rfc::blake2s::blake2s;
+
+        let mut contents = vec![];
+
+        r.read_to_end(&mut contents).unwrap();
+
+        let mut output = [0; 32];
+        output.copy_from_slice(&blake2s(32, &[], &contents).as_bytes());
+
+        Digest256(output)
+    }
+
     pub fn to_string(&self) -> String {
         (&self.0[..]).to_base58check()
     }
