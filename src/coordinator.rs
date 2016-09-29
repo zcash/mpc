@@ -321,8 +321,8 @@ fn main() {
                                 if magic != NETWORK_MAGIC {
                                     warn!("Remote host {} did not supply correct network magic.", addr);
                                 } else {
-                                    stream.set_read_timeout(Some(Duration::from_secs(60)));
-                                    stream.set_write_timeout(Some(Duration::from_secs(60)));
+                                    stream.set_read_timeout(Some(Duration::from_secs(5 * 60)));
+                                    stream.set_write_timeout(Some(Duration::from_secs(5 * 60)));
                                     handler.accept(peerid, stream);
                                 }
                             }

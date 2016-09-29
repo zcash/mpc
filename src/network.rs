@@ -47,11 +47,13 @@ impl ConnectionHandler {
     }
 
     fn handshake(&mut self) {
-        let _ = self.s.set_read_timeout(Some(Duration::from_secs(60)));
-        let _ = self.s.set_write_timeout(Some(Duration::from_secs(60)));
+        let _ = self.s.set_read_timeout(Some(Duration::from_secs(5)));
+        let _ = self.s.set_write_timeout(Some(Duration::from_secs(5)));
         let _ = self.s.write(&NETWORK_MAGIC);
         let _ = self.s.write(&self.peerid);
         let _ = self.s.flush();
+        let _ = self.s.set_read_timeout(Some(Duration::from_secs(5 * 60)));
+        let _ = self.s.set_write_timeout(Some(Duration::from_secs(5 * 60)));
     }
 
     fn do_with_stream<T, E, F: Fn(&mut TcpStream) -> Result<T, E>>(&mut self, cb: F) -> T
@@ -104,6 +106,8 @@ impl ConnectionHandler {
 }
 
 fn main() {
+    let mut handler = ConnectionHandler::new();
+
     //prompt("Press [ENTER] when you're ready to perform diagnostics of the DVD drive.");
     //perform_diagnostics();
     //prompt("Diagnostics complete. Press [ENTER] when you're ready to begin the ceremony.");
@@ -125,7 +129,6 @@ fn main() {
         }
     }
 
-    let mut handler = ConnectionHandler::new();
     handler.write(&comm);
 
     println!("Waiting to receive disc 'A' from coordinator server...");
