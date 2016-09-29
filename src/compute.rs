@@ -21,29 +21,59 @@ pub const THREADS: usize = 8;
 pub const DIRECTORY_PREFIX: &'static str = "/";
 pub const ASK_USER_TO_RECORD_HASHES: bool = true;
 
-fn entropy_from_kernel(seed: &mut [u32; 8]) {
+fn entropy_from_kernel(seed: &mut [u8; 32]) {
     println!("Please wait...");
 
     let mut linux_rng = rand::read::ReadRng::new(File::open("/dev/random").unwrap());
 
-    for i in 0..8 {
-        let n: u32 = linux_rng.gen();
-        seed[i] = seed[i] ^ n;
+    for i in 0..32 {
+        let n: u8 = linux_rng.gen();
+        seed[i] = n;
     }
 }
 
-fn entropy_from_user(seed: &mut [u32; 8]) {
-    use byteorder::{ByteOrder, LittleEndian};
+fn entropy_from_user(seed: &mut [u8; 32]) {
     use blake2_rfc::blake2s::blake2s;
 
     let entropy = prompt("Please type a random string of text and then press [ENTER] to provide additional entropy.");
 
     let hash = blake2s(32, &[], entropy.as_bytes());
+
+    seed.copy_from_slice(hash.as_bytes());
+}
+
+fn get_entropy() -> [u32; 8] {
+    use blake2_rfc::blake2s::blake2s;
+
+    let mut v = vec![];
+
+    {
+        let mut seed1: [u8; 32] = [0; 32];
+        entropy_from_kernel(&mut seed1);
+        let mut seed2: [u8; 32] = [0; 32];
+        entropy_from_user(&mut seed2);
+        let mut seed3: [u8; 32] = [0; 32];
+        entropy_from_kernel(&mut seed3);
+
+        v.extend_from_slice(&seed1);
+        v.extend_from_slice(&seed2);
+        v.extend_from_slice(&seed3);
+    }
+
+    assert_eq!(v.len(), 32*3);
+
+    let mut seed: [u32; 8] = [0; 8];
+
+    let hash = blake2s(32, &[], &v);
     let hash = hash.as_bytes();
 
     for i in 0..8 {
-        seed[i] = seed[i] ^ LittleEndian::read_u32(&hash[(i*4)..]);
+        use byteorder::{ByteOrder, LittleEndian};
+
+        seed[i] = LittleEndian::read_u32(&hash[(i*4)..]);
     }
+
+    seed
 }
 
 fn main() {
@@ -52,10 +82,7 @@ fn main() {
     prompt("Diagnostics complete. Press [ENTER] when you're ready to begin the ceremony.");
 
     let (privkey, pubkey, comm) = {
-        let mut seed: [u32; 8] = [0; 8];
-        entropy_from_kernel(&mut seed);
-        entropy_from_user(&mut seed);
-        entropy_from_kernel(&mut seed);
+        let seed = get_entropy();
 
         let mut chacha_rng = rand::chacha::ChaChaRng::from_seed(&seed);
 
