@@ -262,15 +262,11 @@ pub fn exchange_disc<
         let mut newdisc = File::create(newdisc_localpath).unwrap();
         our_cb(&mut newdisc).ok().unwrap();
     }
-    {
+    if ::ASK_USER_TO_RECORD_HASHES {
         let mut newdisc = File::open(newdisc_localpath).unwrap();
         let h = hash_of_file(&mut newdisc);
 
-        prompt(&format!("Please write down and publish the string: {}\n\
-                         It is the hash of disc '{}'.\n\n\
-                         Press [ENTER] when you've written it down.",
-                         h.to_string(),
-                         our_disc));
+        write_down_disc_please(&h, our_disc);
     }
 
     let mut already_burned = false;
@@ -287,13 +283,11 @@ pub fn exchange_disc<
 
         match read_from_dvd(&format!("disc{}", their_disc), &format!("{}disc{}", ::DIRECTORY_PREFIX, their_disc)) {
             DvdStatus::File(mut f) => {
-                let h = hash_of_file(&mut f);
-                prompt(&format!("Please write down and publish the string: {}\n\
-                                 It is the hash of disc '{}'.\n\n\
-                                 Press [ENTER] when you've written it down.",
-                                 h.to_string(),
-                                 their_disc));
-                f.reset();
+                if ::ASK_USER_TO_RECORD_HASHES {
+                    let h = hash_of_file(&mut f);
+                    write_down_disc_please(&h, their_disc);
+                    f.reset();
+                }
 
                 match their_cb(&mut f) {
                     Ok(data) => {
@@ -338,15 +332,11 @@ pub fn write_disc<
         let mut newdisc = File::create(newdisc_localpath).unwrap();
         our_cb(&mut newdisc).ok().unwrap();
     }
-    {
+    if ::ASK_USER_TO_RECORD_HASHES {
         let mut newdisc = File::open(newdisc_localpath).unwrap();
         let h = hash_of_file(&mut newdisc);
 
-        prompt(&format!("Please write down and publish the string: {}\n\
-                         It is the hash of disc '{}'.\n\n\
-                         Press [ENTER] when you've written it down.",
-                         h.to_string(),
-                         our_disc));
+        write_down_disc_please(&h, our_disc);
     }
 
     let mut already_burned = false;
@@ -373,7 +363,9 @@ pub fn write_disc<
                 prompt(&format!("Disc {} has been burned. Label the disc and transfer it to the\n\
                                  other machine. Press [ENTER] when the drive is clear.", our_disc));
             },
-            _ => {}
+            _ => {
+                eject();
+            }
         }
     }
 }
@@ -384,13 +376,11 @@ pub fn read_disc<T, R, F: Fn(&mut TemporaryFile) -> Result<T, R>>(name: &str, me
     loop {
         match read_from_dvd(&format!("disc{}", name), &format!("{}disc{}", ::DIRECTORY_PREFIX, name)) {
             DvdStatus::File(mut f) => {
-                let h = hash_of_file(&mut f);
-                prompt(&format!("Please write down and publish the string: {}\n\
-                                 It is the hash of disc '{}'.\n\n\
-                                 Press [ENTER] when you've written it down.",
-                                 h.to_string(),
-                                 name));
-                f.reset();
+                if ::ASK_USER_TO_RECORD_HASHES {
+                    let h = hash_of_file(&mut f);
+                    write_down_disc_please(&h, name);
+                    f.reset();
+                }
 
                 match cb(&mut f) {
                     Ok(data) => {
@@ -412,6 +402,18 @@ pub fn read_disc<T, R, F: Fn(&mut TemporaryFile) -> Result<T, R>>(name: &str, me
                 prompt(&format!("You placed a blank DVD in the drive, but we're expecting \
                                  disc '{}'.\n\n{}", name, message));
             }
+        }
+    }
+}
+
+pub fn write_down_disc_please(h: &Digest256, name: &str) {
+    loop {
+        if "recorded" == prompt(&format!("Please write down and publish the string: {}\n\
+                                          It is the hash of disc '{}'.\n\n\
+                                          Type 'recorded' and press [ENTER] to confirm you've written it down.",
+                                          h.to_string(),
+                                          name)) {
+            break;
         }
     }
 }
