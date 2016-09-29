@@ -48,7 +48,6 @@ fn entropy_from_user(seed: &mut [u32; 8]) {
 
 fn main() {
     prompt("Press [ENTER] when you're ready to perform diagnostics of the DVD drive.");
-    disable_modloop_unmount();
     perform_diagnostics();
     prompt("Diagnostics complete. Press [ENTER] when you're ready to begin the ceremony.");
 

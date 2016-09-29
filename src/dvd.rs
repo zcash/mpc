@@ -141,22 +141,6 @@ pub fn read_from_dvd(dvd_path: &str, local_path: &str) -> DvdStatus {
     }
 }
 
-pub fn disable_modloop_unmount() {
-    Command::new("/etc/init.d/modloop")
-             .arg("stop")
-             .output()
-             .unwrap();
-
-    thread::sleep(Duration::from_secs(6));
-
-    Command::new("/bin/umount")
-             .arg("/media/cdrom")
-             .output()
-             .unwrap();
-
-    thread::sleep(Duration::from_secs(6));
-}
-
 pub fn eject() {
     Command::new("/usr/bin/eject")
              .arg("/dev/sr0")

@@ -2,6 +2,13 @@
 
 clear
 cd /
+
+# Make it so we can eject the live cd.
+/etc/init.d/modloop stop
+sleep 5
+umount /media/cdrom
+sleep 5
+
 /etc/init.d/networking start && /bin/mpc_network.rs
 
 sleep 10000000
