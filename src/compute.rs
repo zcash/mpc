@@ -21,48 +21,36 @@ pub const THREADS: usize = 8;
 pub const DIRECTORY_PREFIX: &'static str = "/home/compute/";
 pub const ASK_USER_TO_RECORD_HASHES: bool = true;
 
-fn entropy_from_kernel(seed: &mut [u8; 32]) {
-    println!("Please wait...");
+fn get_entropy() -> [u32; 8] {
+    let mut seed: [u32; 8] = [0; 8];
+
+    use blake2_rfc::blake2s::blake2s;
+
+    println!("Please wait... (You can help Linux collect entropy by pressing the left shift key a bunch.)");
 
     let mut linux_rng = rand::read::ReadRng::new(File::open("/dev/random").unwrap());
 
-    for i in 0..32 {
-        let n: u8 = linux_rng.gen();
-        seed[i] = n;
+    let mut v: Vec<u8> = vec![];
+
+    for _ in 0..32 {
+        v.push(linux_rng.gen());
     }
-}
-
-fn entropy_from_user(seed: &mut [u8; 32]) {
-    use blake2_rfc::blake2s::blake2s;
-
-    let entropy = prompt("Please type a random string of text and then press [ENTER] to provide additional entropy.");
-
-    let hash = blake2s(32, &[], entropy.as_bytes());
-
-    seed.copy_from_slice(hash.as_bytes());
-}
-
-fn get_entropy() -> [u32; 8] {
-    use blake2_rfc::blake2s::blake2s;
-
-    let mut v = vec![];
 
     {
-        let mut seed1: [u8; 32] = [0; 32];
-        entropy_from_kernel(&mut seed1);
-        let mut seed2: [u8; 32] = [0; 32];
-        entropy_from_user(&mut seed2);
-        let mut seed3: [u8; 32] = [0; 32];
-        entropy_from_kernel(&mut seed3);
+        let input_from_user = prompt(
+            "Please type a random string of text and then press [ENTER] to provide additional entropy."
+        );
 
-        v.extend_from_slice(&seed1);
-        v.extend_from_slice(&seed2);
-        v.extend_from_slice(&seed3);
+        let hash = blake2s(32, &[], input_from_user.as_bytes());
+
+        v.extend_from_slice(hash.as_bytes());
     }
 
-    assert_eq!(v.len(), 32*3);
-
-    let mut seed: [u32; 8] = [0; 8];
+    println!("Please wait... (You can help Linux collect entropy by pressing the left shift key a bunch.)");
+    
+    for _ in 0..32 {
+        v.push(linux_rng.gen());
+    }
 
     let hash = blake2s(32, &[], &v);
     let hash = hash.as_bytes();
