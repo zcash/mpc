@@ -18,7 +18,7 @@ use bincode::SizeLimit::Infinite;
 use bincode::rustc_serialize::{encode_into, decode_from};
 
 pub const THREADS: usize = 8;
-pub const DIRECTORY_PREFIX: &'static str = "/";
+pub const DIRECTORY_PREFIX: &'static str = "/home/compute/";
 pub const ASK_USER_TO_RECORD_HASHES: bool = true;
 
 fn entropy_from_kernel(seed: &mut [u8; 32]) {

@@ -106,8 +106,6 @@ impl ConnectionHandler {
 }
 
 fn main() {
-    let mut handler = ConnectionHandler::new();
-
     //prompt("Press [ENTER] when you're ready to perform diagnostics of the DVD drive.");
     //perform_diagnostics();
     //prompt("Diagnostics complete. Press [ENTER] when you're ready to begin the ceremony.");
@@ -129,6 +127,7 @@ fn main() {
         }
     }
 
+    let mut handler = ConnectionHandler::new();
     handler.write(&comm);
 
     println!("Waiting to receive disc 'A' from coordinator server...");
