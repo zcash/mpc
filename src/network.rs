@@ -106,9 +106,9 @@ impl ConnectionHandler {
 }
 
 fn main() {
-    //prompt("Press [ENTER] when you're ready to perform diagnostics of the DVD drive.");
-    //perform_diagnostics();
-    //prompt("Diagnostics complete. Press [ENTER] when you're ready to begin the ceremony.");
+    prompt("Press [ENTER] when you're ready to perform diagnostics of the DVD drive.");
+    perform_diagnostics();
+    prompt("Diagnostics complete. Press [ENTER] when you're ready to begin the ceremony.");
 
     let comm;
     {
