@@ -197,6 +197,8 @@ fn main() {
     eject();
 
     loop {
-        prompt("Done! You can now destroy the other machine. :)");
+        prompt("Done! The other machine can be powered down and disposed of.\n\
+                Do not destroy any DVDs, and ensure there are no DVDs still\n\
+                inside of either machine.");
     }
 }
