@@ -2,4 +2,5 @@ alpine-base
 syslinux
 mpc_compute
 xorriso
-gradm
+gradm-improved
+nano

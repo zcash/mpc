@@ -42,6 +42,8 @@ ADD iso.rsa.pub /root/.abuild/iso.rsa.pub
 RUN echo 'PACKAGER_PRIVKEY="/root/.abuild/iso.rsa"' > /root/.abuild/abuild.conf
 RUN chown -R builder:abuild /root/.abuild
 
+ADD iso.rsa.pub /etc/apk/keys/iso.rsa.pub
+
 # Add the `mpc_compute` package.
 
 ADD mpc_compute /home/builder/mpc_compute/
@@ -52,11 +54,29 @@ RUN chown -R builder:abuild /home/builder/mpc_compute/
 ADD mpc_network /home/builder/mpc_network/
 RUN chown -R builder:abuild /home/builder/mpc_network/
 
+# Add the `gradm-improved` package
+ADD gradm-improved /home/builder/gradm-improved/
+RUN chown -R builder:abuild /home/builder/gradm-improved/
+
 # Run some setup as `builder`
+USER builder
+
+# Build the "gradm-improved" package.
+
+WORKDIR /home/builder/gradm-improved/
+RUN abuild checksum
+RUN abuild -r
+
+RUN cp -r /home/builder/packages/builder /home/builder/apks_custom_gradm/
+RUN rm -rf /home/builder/packages
+
+USER root
+RUN echo "/home/builder/apks_custom_gradm/" >> /etc/apk/repositories
+RUN apk update
+USER builder
 
 # Build the MPC "compute" package that runs at boot.
 
-USER builder
 WORKDIR /home/builder/mpc_compute/
 
 RUN abuild checksum
@@ -78,7 +98,6 @@ RUN cp -r /home/builder/packages/builder /home/builder/apks_custom/
 
 USER root
 RUN echo "/home/builder/apks_custom/" >> /etc/apk/repositories
-ADD iso.rsa.pub /etc/apk/keys/iso.rsa.pub
 RUN apk update
 USER builder
 

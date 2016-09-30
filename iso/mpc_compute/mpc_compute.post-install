@@ -1,0 +1,5 @@
+#!/bin/sh
+
+echo "compute:x:1000:100::/home/compute:/bin/ash" >> /etc/passwd
+mkdir /home/compute
+chown compute:users /home/compute

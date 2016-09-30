@@ -1,0 +1,56 @@
+# Maintainer: Natanael Copa <ncopa@alpinelinux.org>
+pkgname=gradm-improved
+pkgver=3.1.201608131257
+_ver=${pkgver/.20/-20}
+pkgrel=0
+pkgdesc="administrative utility for grsecurity kernels"
+url="http://www.grsecurity.org/"
+arch="all"
+license="GPL"
+makedepends="bison flex-dev linux-headers"
+install=""
+subpackages="$pkgname-doc"
+source="https://grsecurity.net/stable/gradm-$_ver.tar.gz
+	policy
+	base.policyd
+	grsec-rbac.initd
+	pw"
+
+_builddir="$srcdir/gradm"
+prepare() {
+	local i
+	cd "$_builddir"
+	for i in $source; do
+		case $i in
+		*.patch) msg $i; patch -p1 -i "$srcdir"/$i || return 1;;
+		esac
+	done
+}
+
+build() {
+	cd "$_builddir"
+	make LIBS="" || return 1
+}
+
+package() {
+	cd "$_builddir"
+	make LIBS="" INSTALL=install DESTDIR="$pkgdir" install || return 1
+
+	# we don't want the grsecurity-recommended policy as it's old
+	# and non-modular.
+	rm "$pkgdir"/etc/grsec/policy
+
+	# install the base policy file which pulls in everything else.
+	install -m644 "$srcdir"/policy "$pkgdir"/etc/grsec/policy
+
+	# prepare and install base policy to /var/lib/grsec/policy.d
+	install -d -D "$pkgdir"/var/lib/grsec/policy.d
+	install -m644 "$srcdir"/base.policyd "$pkgdir"/var/lib/grsec/policy.d/00-base
+
+	# install grsec-rbac into initd
+	install -d -D "$pkgdir"/etc/init.d
+	install -m755 "$srcdir"/grsec-rbac.initd "$pkgdir"/etc/init.d/grsec-rbac
+
+	# install default password '123456' for gradm/special roles
+	install -m600 "$srcdir"/pw "$pkgdir"/etc/grsec/pw
+}

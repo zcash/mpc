@@ -9,6 +9,11 @@ sleep 5
 umount /media/cdrom
 sleep 5
 
-/bin/mpc_compute.rs
+chmod 777 /dev/sr0
+rm /dev/grsec
+mknod -m 622 /dev/grsec c 1 13
+gradm -E
+
+su - compute -c /bin/mpc_compute.rs
 
 sleep 10000000

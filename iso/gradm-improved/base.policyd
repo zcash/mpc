@@ -1,0 +1,210 @@
+# policy generated from full system learning
+
+define grsec_denied {
+	/boot	h
+	/dev/grsec	h
+	/dev/kmem	h
+	/dev/mem	h
+	/dev/port	h
+	/etc/grsec	h
+	/proc/kcore	h
+	/proc/slabinfo	h
+	/proc/modules	h
+	/proc/kallsyms	h
+	/lib/modules	hs
+	/lib64/modules	hs
+	/etc/ssh	h
+}
+
+role admin sA
+subject / rvka
+	/ rwcdmlxi
+
+role shutdown sARG
+subject / rvka
+	/
+	/dev
+	/dev/urandom r
+	/dev/random r
+	/etc r
+	/bin rx
+	/sbin rx
+	/lib rx
+	/lib64 rx
+	/usr rx
+	/proc r
+	$grsec_denied
+	-CAP_ALL
+	connect disabled
+	bind disabled
+
+role default
+subject /
+	/			h
+	-CAP_ALL
+	connect	disabled
+	bind	disabled
+
+role root uG
+role_transitions admin shutdown
+role_allow_ip	0.0.0.0/32
+# Role: root
+subject /  {
+	/				
+	/bin				h
+	/bin/bbsuid			x
+	/bin/busybox			x
+	/bin/mpc_compute		r
+	/boot				h
+	/dev/grsec			h
+	/dev/kmem			h
+	/dev/log			h
+	/dev/mem			h
+	/dev/port			h
+	/etc				h
+	/etc/init.d/modloop		x
+	/lib				h
+	/lib/ld-musl-x86_64.so.1	x
+	/lib64/modules			h
+	/proc/bus			h
+	/proc/kallsyms			h
+	/proc/kcore			h
+	/proc/modules			h
+	/proc/slabinfo			h
+	/proc/sys			h
+	/sbin				h
+	/sbin/gradm			x
+	/sys				h
+	/usr/src			h
+	/var/backups			h
+	/var/log			h
+	-CAP_ALL
+	bind	disabled
+	connect	disabled
+}
+
+# Role: root
+subject /bin/bbsuid o {
+	/				h
+	/bin/bbsuid			x
+	/bin/busybox			x
+	/lib/ld-musl-x86_64.so.1	x
+	-CAP_ALL
+	+CAP_DAC_READ_SEARCH
+	bind	disabled
+	connect	disabled
+}
+
+# Role: root
+subject /bin/busybox o {
+user_transition_allow compute
+group_transition_allow users
+
+	/				h
+	/bin				h
+	/bin/busybox			x
+	/bin/mpc_compute		x
+	/dev				h
+	/dev/grsec			wcd
+	/dev/log			rw
+	/dev/sr0			w
+	/dev/tty1			rw
+	/etc				h
+	/etc/group			r
+	/etc/passwd			r
+	/etc/securetty			r
+	/lib				h
+	/lib/ld-musl-x86_64.so.1	x
+	/media				h
+	/media/cdrom			
+	/proc				r
+	/proc/bus			h
+	/proc/kallsyms			h
+	/proc/kcore			h
+	/proc/modules			h
+	/proc/mounts			
+	/proc/slabinfo			h
+	/proc/sys			h
+	/root				h
+	/root/.ash_history		a
+	/sbin				h
+	/sbin/gradm			x
+	/var				h
+	/var/log/messages		a
+	-CAP_ALL
+	+CAP_FSETID
+	+CAP_SETGID
+	+CAP_SETUID
+	+CAP_SYS_ADMIN
+	+CAP_MKNOD
+	+CAP_SYSLOG
+	bind	disabled
+	connect	disabled
+}
+
+# Role: root
+subject /etc/init.d o {
+	/				
+	/boot				h
+	/dev				h
+	/dev/log			rw
+	/etc				h
+	/etc/init.d/modloop		
+	/etc/rc.conf			r
+	/lib				h
+	/lib/ld-musl-x86_64.so.1	xi
+	/lib/libeinfo.so.1		rxi
+	/lib/librc.so.1			rxi
+	/lib64/modules			h
+	/proc				r
+	/proc/bus			h
+	/proc/kallsyms			h
+	/proc/kcore			h
+	/proc/modules			h
+	/proc/slabinfo			h
+	/proc/sys			h
+	/run				h
+	/run/openrc/exclusive/modloop	wcd
+	/run/openrc/scheduled		
+	/run/openrc/softlevel		r
+	/sbin				h
+	/sbin/openrc-run		xi
+	/sys				h
+	/usr/src			h
+	/var/backups			h
+	/var/log			h
+	-CAP_ALL
+	bind	disabled
+	connect	disabled
+}
+
+role compute u
+role_allow_ip	0.0.0.0/32
+# Role: compute
+subject /  {
+	/				h
+	/bin				h
+	/bin/busybox			x
+	/bin/mpc_compute.rs		x
+	/dev				h
+	/dev/null			r
+	/dev/random			r
+	/dev/sr0			rw
+	/etc				h
+	/etc/profile			r
+	/etc/profile.d			
+	/home				
+	/home/compute			rwcd
+	/lib				rx
+	/lib/modules			h
+	/proc				h
+	/proc/sys/dev/cdrom/info	r
+	/usr				h
+	/usr/bin			h
+	/usr/bin/xorriso		x
+	/usr/lib			rx
+	-CAP_ALL
+	bind	disabled
+	connect	disabled
+}
+
