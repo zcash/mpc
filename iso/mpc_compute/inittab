@@ -5,7 +5,7 @@
 ::wait:/sbin/openrc default
 
 #tty1::respawn:/sbin/getty 38400 tty1
-tty1::respawn:/bin/mpc_compute
+tty1::wait:/bin/mpc_compute
 #tty2::respawn:/sbin/getty 38400 tty2
 
 ::ctrlaltdel:/sbin/reboot
