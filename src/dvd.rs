@@ -257,7 +257,7 @@ pub fn exchange_disc<
 
     loop {
         if already_burned {
-            prompt(&format!("Insert disc '{}' from the other machine. If the burn of disc '{}' failed,
+            prompt(&format!("Insert disc '{}' from the other machine. If the burn of disc '{}' failed,\n\
                              insert another blank disc to burn it again. Press [ENTER] when ready.",
                             their_disc, our_disc));
         } else {
