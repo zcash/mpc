@@ -1,5 +1,8 @@
 #!/bin/sh
 
-echo "compute:x:1000:100::/home/compute:/bin/ash" >> /etc/passwd
+echo "compute:x:1000:19::/home/compute:/bin/ash" >> /etc/passwd
 mkdir /home/compute
-chown compute:users /home/compute
+chown compute:cdrom /home/compute
+
+sed -i.bak '/cdrom/d' /etc/group
+echo "cdrom:x:19:compute" >> /etc/group

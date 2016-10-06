@@ -98,7 +98,7 @@ subject /bin/bbsuid o {
 # Role: root
 subject /bin/busybox o {
 user_transition_allow compute
-group_transition_allow users
+group_transition_allow cdrom
 
 	/				h
 	/bin				h
