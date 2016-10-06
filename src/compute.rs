@@ -22,19 +22,9 @@ pub const DIRECTORY_PREFIX: &'static str = "/home/compute/";
 pub const ASK_USER_TO_RECORD_HASHES: bool = true;
 
 fn get_entropy() -> [u32; 8] {
-    let mut seed: [u32; 8] = [0; 8];
-
     use blake2_rfc::blake2s::blake2s;
 
-    println!("Please wait... (You can help Linux collect entropy by pressing the left shift key a bunch.)");
-
-    let mut linux_rng = rand::read::ReadRng::new(File::open("/dev/random").unwrap());
-
     let mut v: Vec<u8> = vec![];
-
-    for _ in 0..32 {
-        v.push(linux_rng.gen());
-    }
 
     {
         let input_from_user = prompt(
@@ -46,14 +36,22 @@ fn get_entropy() -> [u32; 8] {
         v.extend_from_slice(hash.as_bytes());
     }
 
-    println!("Please wait... (You can help Linux collect entropy by pressing the left shift key a bunch.)");
+    println!("Please wait while Linux fills up its entropy pool...");
     
-    for _ in 0..32 {
-        v.push(linux_rng.gen());
+    {
+        let mut linux_rng = rand::read::ReadRng::new(File::open("/dev/random").unwrap());
+
+        for _ in 0..32 {
+            v.push(linux_rng.gen());
+        }
     }
+
+    assert_eq!(v.len(), 64);
 
     let hash = blake2s(32, &[], &v);
     let hash = hash.as_bytes();
+
+    let mut seed: [u32; 8] = [0; 8];
 
     for i in 0..8 {
         use byteorder::{ByteOrder, LittleEndian};
