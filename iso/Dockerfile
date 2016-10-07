@@ -115,6 +115,6 @@ ADD alpine-network.packages /home/builder/alpine-iso/alpine-network.packages
 # Build the ISOs
 
 USER root
-RUN make BOOT_OPTS=pkgs=mpc_compute PROFILE=alpine-compute iso
-RUN make BOOT_OPTS=pkgs=mpc_network PROFILE=alpine-network iso
+RUN make PROFILE=alpine-compute iso
+RUN make PROFILE=alpine-network iso
 RUN mkdir -p /home/builder/target/

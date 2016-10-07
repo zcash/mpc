@@ -1,3 +1,5 @@
+#![allow(non_snake_case, dead_code)]
+
 extern crate bn;
 extern crate rand;
 extern crate snark;
@@ -13,7 +15,6 @@ mod consts;
 use self::consts::*;
 
 use std::fs::File;
-use std::io::{Read, Write};
 use protocol::*;
 use snark::*;
 

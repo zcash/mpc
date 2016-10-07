@@ -20,11 +20,6 @@ path = "src/verifier.rs"
 test = false
 
 [[bin]]
-name = "simulator"
-path = "src/simulator.rs"
-test = false
-
-[[bin]]
 name = "compute"
 path = "src/compute.rs"
 test = false

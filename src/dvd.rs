@@ -21,7 +21,7 @@ pub fn prompt(s: &str) -> String {
         let mut input = String::new();
         reset();
         println!("{}", s);
-        println!("");
+        println!("\x07");
 
         if io::stdin().read_line(&mut input).is_ok() {
             println!("Please wait...");
@@ -142,9 +142,9 @@ pub fn read_from_dvd(dvd_path: &str, local_path: &str) -> DvdStatus {
 }
 
 pub fn eject() {
-    Command::new("/usr/bin/eject")
-             .arg("/dev/sr0")
-             .output();
+    let _ = Command::new("/usr/bin/eject")
+            .arg("/dev/sr0")
+            .output();
 }
 
 pub fn perform_diagnostics() {

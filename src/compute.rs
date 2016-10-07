@@ -1,3 +1,5 @@
+#![allow(non_snake_case, dead_code)]
+
 extern crate bn;
 extern crate rand;
 extern crate crossbeam;

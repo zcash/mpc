@@ -303,8 +303,8 @@ fn main() {
     for stream in listener.incoming() {
         match stream {
             Ok(mut stream) => {
-                stream.set_read_timeout(Some(Duration::from_secs(5)));
-                stream.set_write_timeout(Some(Duration::from_secs(5)));
+                let _ = stream.set_read_timeout(Some(Duration::from_secs(5)));
+                let _ = stream.set_write_timeout(Some(Duration::from_secs(5)));
 
                 match stream.peer_addr() {
                     Ok(addr) => {
@@ -321,9 +321,14 @@ fn main() {
                                 if magic != NETWORK_MAGIC {
                                     warn!("Remote host {} did not supply correct network magic.", addr);
                                 } else {
-                                    stream.set_read_timeout(Some(Duration::from_secs(5 * 60)));
-                                    stream.set_write_timeout(Some(Duration::from_secs(5 * 60)));
-                                    handler.accept(peerid, stream);
+                                    if
+                                        stream.set_read_timeout(Some(Duration::from_secs(5 * 60))).is_ok() &&
+                                        stream.set_write_timeout(Some(Duration::from_secs(5 * 60))).is_ok()
+                                    {
+                                        handler.accept(peerid, stream);
+                                    } else {
+                                        warn!("Failed to set read/write timeouts for remote host {}", addr);
+                                    }
                                 }
                             }
                         }

@@ -1,3 +1,5 @@
+#![allow(non_snake_case, dead_code)]
+
 extern crate bn;
 extern crate rand;
 extern crate crossbeam;
@@ -14,7 +16,7 @@ mod dvd;
 use self::dvd::*;
 
 use rand::Rng;
-use std::io::{Read, Write};
+use std::io::Write;
 use std::net::{TcpStream};
 use std::thread;
 use std::time::Duration;
@@ -63,7 +65,7 @@ impl ConnectionHandler {
         loop {
             let val = cb(&mut self.s);
 
-            self.s.flush();
+            let _ = self.s.flush();
 
             match val {
                 Ok(s) => {
