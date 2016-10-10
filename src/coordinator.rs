@@ -125,7 +125,6 @@ impl ConnectionHandler {
         info!("Waiting for players to connect...");
 
         let mut peers = vec![];
-        let mut pubkeys = vec![];
         let mut commitments: Vec<Digest256> = vec![];
         for peerid in new_peers.into_iter().take(PLAYERS) {
             info!("Initializing new player (peerid={})", peerid.to_hex());
@@ -166,7 +165,7 @@ impl ConnectionHandler {
 
             info!("Verifying transformation of stage1 from peerid={}", peerid.to_hex());
 
-            if !new_stage1.verify_transform(&stage1, &pubkey) {
+            if !new_stage1.is_well_formed(&stage1) {
                 error!("Peer did not perform valid stage1 transformation (peerid={})", peerid.to_hex());
                 panic!("cannot recover.");
             } else {
@@ -175,7 +174,6 @@ impl ConnectionHandler {
                 info!("Writing new stage1 to transcript");
                 encode_into(&new_stage1, &mut transcript, Infinite).unwrap();
 
-                pubkeys.push(pubkey);
                 stage1 = new_stage1;
             }
         }
@@ -183,7 +181,7 @@ impl ConnectionHandler {
         info!("Initializing stage2 with constraint system and stage1");
 
         let mut stage2 = Stage2Contents::new(&cs, &stage1);
-        for (pubkey, peerid) in pubkeys.iter().zip(peers.iter()) {
+        for peerid in peers.iter() {
             info!("Sending stage2 to peerid={}", peerid.to_hex());
 
             self.write(peerid, &stage2);
@@ -194,7 +192,7 @@ impl ConnectionHandler {
 
             info!("Verifying transformation of stage2 from peerid={}", peerid.to_hex());
 
-            if !new_stage2.verify_transform(&stage2, pubkey) {
+            if !new_stage2.is_well_formed(&stage2) {
                 error!("Peer did not perform valid stage2 transformation (peerid={})", peerid.to_hex());
                 panic!("cannot recover.");
             } else {
@@ -207,7 +205,7 @@ impl ConnectionHandler {
         info!("Initializing stage3 with constraint system and stage2");
 
         let mut stage3 = Stage3Contents::new(&cs, &stage2);
-        for (pubkey, peerid) in pubkeys.iter().zip(peers.iter()) {
+        for peerid in peers.iter() {
             info!("Sending stage3 to peerid={}", peerid.to_hex());
 
             self.write(peerid, &stage3);
@@ -218,7 +216,7 @@ impl ConnectionHandler {
 
             info!("Verifying transformation of stage3 from peerid={}", peerid.to_hex());
 
-            if !new_stage3.verify_transform(&stage3, pubkey) {
+            if !new_stage3.is_well_formed(&stage3) {
                 error!("Peer did not perform valid stage3 transformation (peerid={})", peerid.to_hex());
                 panic!("cannot recover.");
             } else {

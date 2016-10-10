@@ -75,7 +75,7 @@ impl Stage1Contents {
         }, ::THREADS);
     }
 
-    pub fn verify_transform(&self, prev: &Self, p: &PublicKey) -> bool {
+    pub fn is_well_formed(&self, prev: &Self) -> bool {
         self.v1.len() == prev.v1.len() &&
         self.v2.len() == prev.v2.len() &&
         self.v1[0] == G1::one() &&
@@ -85,7 +85,11 @@ impl Stage1Contents {
         !self.v1[1].is_zero() &&
         !self.v2[1].is_zero() &&
         !prev.v1[1].is_zero() &&
-        !prev.v2[1].is_zero() &&
+        !prev.v2[1].is_zero()
+    }
+
+    pub fn verify_transform(&self, prev: &Self, p: &PublicKey) -> bool {
+        self.is_well_formed(prev) &&
         same_power(
             &Spair::new(prev.v1[1], self.v1[1]).unwrap(),
             &p.tau_g2()
@@ -146,7 +150,7 @@ impl Stage2Contents {
         mul_all_by(&mut self.pk_c_prime, s.rho_a * s.rho_b * s.alpha_c);
     }
 
-    pub fn verify_transform(&self, prev: &Self, p: &PublicKey) -> bool {
+    pub fn is_well_formed(&self, prev: &Self) -> bool {
         !prev.vk_a.is_zero() &&
         !prev.vk_b.is_zero() &&
         !prev.vk_c.is_zero() &&
@@ -162,7 +166,11 @@ impl Stage2Contents {
         self.pk_b_temp.len() == prev.pk_b_temp.len() &&
         self.pk_b_prime.len() == prev.pk_b_prime.len() &&
         self.pk_c.len() == prev.pk_c.len() &&
-        self.pk_c_prime.len() == prev.pk_c_prime.len() &&
+        self.pk_c_prime.len() == prev.pk_c_prime.len()
+    }
+
+    pub fn verify_transform(&self, prev: &Self, p: &PublicKey) -> bool {
+        self.is_well_formed(prev) &&
         // Check parts of the verification key
         same_power(
             &Spair::new(prev.vk_a, self.vk_a).unwrap(),
@@ -262,14 +270,18 @@ impl Stage3Contents {
         mul_all_by(&mut self.pk_k, s.beta);
     }
 
-    pub fn verify_transform(&self, prev: &Self, p: &PublicKey) -> bool {
+    pub fn is_well_formed(&self, prev: &Self) -> bool {
         !prev.vk_gamma.is_zero() &&
         !prev.vk_beta_gamma_one.is_zero() &&
         !prev.vk_beta_gamma_two.is_zero() &&
         !self.vk_gamma.is_zero() &&
         !self.vk_beta_gamma_one.is_zero() &&
         !self.vk_beta_gamma_two.is_zero() &&
-        self.pk_k.len() == prev.pk_k.len() &&
+        self.pk_k.len() == prev.pk_k.len()
+    }
+
+    pub fn verify_transform(&self, prev: &Self, p: &PublicKey) -> bool {
+        self.is_well_formed(prev) &&
         same_power(
             &Spair::new(prev.vk_gamma, self.vk_gamma).unwrap(),
             &p.gamma_g1()
