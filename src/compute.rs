@@ -85,6 +85,7 @@ fn main() {
         "A",
         &format!("Commitment: {}\n\n\
                   Please type the above commitment into the networked machine.\n\n\
+                  Also, write the string down on a piece of paper.\n\n\
                   The networked machine should produce disc 'A'.\n\n\
                   When disc 'A' is in the DVD drive, press [ENTER].", comm.to_string()),
         |f| {
