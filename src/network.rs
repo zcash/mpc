@@ -16,7 +16,7 @@ mod dvd;
 use self::dvd::*;
 
 use rand::Rng;
-use std::io::Write;
+use std::io::{Read,Write};
 use std::net::{TcpStream};
 use std::thread;
 use std::time::Duration;
@@ -31,7 +31,8 @@ const COORDINATOR_ADDR: &'static str = "mdr.z.cash:65530";
 
 struct ConnectionHandler {
     peerid: [u8; 8],
-    s: TcpStream
+    s: TcpStream,
+    msgid: u8
 }
 
 impl ConnectionHandler {
@@ -40,30 +41,48 @@ impl ConnectionHandler {
 
         let mut tmp = ConnectionHandler {
             peerid: peerid,
-            s: TcpStream::connect(COORDINATOR_ADDR).unwrap()
+            s: TcpStream::connect(COORDINATOR_ADDR).unwrap(),
+            msgid: 0
         };
 
-        tmp.handshake();
+        tmp.handshake().expect("could not handshake with coordinator");
 
         tmp
     }
 
-    fn handshake(&mut self) {
-        let _ = self.s.set_read_timeout(Some(Duration::from_secs(5)));
-        let _ = self.s.set_write_timeout(Some(Duration::from_secs(5)));
-        let _ = self.s.write(&NETWORK_MAGIC);
-        let _ = self.s.write(&self.peerid);
-        let _ = self.s.flush();
-        let _ = self.s.set_read_timeout(Some(Duration::from_secs(5 * 60)));
-        let _ = self.s.set_write_timeout(Some(Duration::from_secs(5 * 60)));
+    fn handshake(&mut self) -> Option<u8> {
+        if self.s.set_read_timeout(Some(Duration::from_secs(5))).is_err() {
+            return None;
+        }
+        if self.s.set_write_timeout(Some(Duration::from_secs(5))).is_err() {
+            return None;
+        }
+        if self.s.write(&NETWORK_MAGIC).is_err() {
+            return None;
+        }
+        if self.s.write(&self.peerid).is_err() {
+            return None;
+        }
+        if self.s.write(&[self.msgid]).is_err() {
+            return None;
+        }
+        let _ = self.s.flush().is_err();
+        let _ = self.s.set_read_timeout(Some(Duration::from_secs(NETWORK_TIMEOUT))).is_err();
+        let _ = self.s.set_write_timeout(Some(Duration::from_secs(NETWORK_TIMEOUT))).is_err();
+
+        let mut buf: [u8; 1] = [0];
+        match self.s.read_exact(&mut buf) {
+            Ok(_) => Some(buf[0]),
+            Err(_) => None
+        }
     }
 
-    fn do_with_stream<T, E, F: Fn(&mut TcpStream) -> Result<T, E>>(&mut self, cb: F) -> T
+    fn do_with_stream<T, E, F: Fn(&mut TcpStream, u8) -> Result<T, E>>(&mut self, cb: F) -> T
     {
-        let mut failed = false;
+        let mut their_msgid = 0;
 
         loop {
-            let val = cb(&mut self.s);
+            let val = cb(&mut self.s, their_msgid);
 
             let _ = self.s.flush();
 
@@ -72,21 +91,30 @@ impl ConnectionHandler {
                     return s;
                 },
                 Err(_) => {
-                    match TcpStream::connect(COORDINATOR_ADDR) {
-                        Ok(s) => {
-                            if failed {
-                                failed = false;
-                                println!("Reconnected to coordinator.");
-                            }
-                            self.s = s;
-                            self.handshake();
+                    let mut failed = false;
 
-                            thread::sleep(Duration::from_secs(2));
-                        },
-                        Err(_) => {
-                            failed = true;
-                            println!("Failed to connect to coordinator, trying again...");
-                            thread::sleep(Duration::from_secs(2));
+                    loop {
+                        match TcpStream::connect(COORDINATOR_ADDR) {
+                            Ok(s) => {
+                                self.s = s;
+                                match self.handshake() {
+                                    Some(id) => {
+                                        their_msgid = id;
+                                        if failed {
+                                            println!("Reconnected to coordinator.");
+                                        }
+                                        break;
+                                    },
+                                    None => {
+                                        thread::sleep(Duration::from_secs(2));
+                                    }
+                                }
+                            },
+                            Err(_) => {
+                                failed = true;
+                                println!("Failed to connect to coordinator, trying again...");
+                                thread::sleep(Duration::from_secs(2));
+                            }
                         }
                     }
                 }
@@ -95,19 +123,54 @@ impl ConnectionHandler {
     }
 
     fn read<T: Decodable>(&mut self) -> T {
-        self.do_with_stream(|s| {
+        let msg = self.do_with_stream(|s, _| {
             decode_from(s, Infinite)
-        })
+        });
+
+        self.msgid += 1;
+
+        let _ = self.s.write(&NETWORK_ACK);
+        let _ = self.s.flush();
+
+        msg
     }
 
     fn write<T: Encodable>(&mut self, obj: &T) {
-        self.do_with_stream(|s| {
-            encode_into(obj, s, Infinite)
+        self.msgid += 1;
+
+        let msgid = self.msgid;
+
+        self.do_with_stream(|s, theirid| {
+            if theirid >= msgid {
+                // They have the message we're sending already.
+                return Ok(());
+            }
+
+            if encode_into(obj, s, Infinite).is_err() {
+                // Couldn't write to the socket, this error will trigger
+                // a reconnect.
+                return Err("couldn't send data".to_string())
+            }
+
+            let _ = s.flush();
+
+            // We expect an ACK now.
+            let mut ack: [u8; 4] = [0; 4];
+            let _ = s.read_exact(&mut ack);
+
+            if ack != NETWORK_ACK {
+                // Bad ACK, this error will trigger reconnect.
+                return Err("bad ack".to_string())
+            }
+
+            // All good.
+            Ok(())
         })
     }
 }
 
 fn main() {
+    let mut handler = ConnectionHandler::new();
     prompt("Press [ENTER] when you're ready to perform diagnostics of the DVD drive.");
     perform_diagnostics();
     prompt("Diagnostics complete. Press [ENTER] when you're ready to begin the ceremony.");
@@ -129,7 +192,6 @@ fn main() {
         }
     }
 
-    let mut handler = ConnectionHandler::new();
     handler.write(&comm);
 
     println!("Waiting to receive disc 'A' from coordinator server...");

@@ -40,7 +40,7 @@ pub const THREADS: usize = 128;
 
 #[derive(Clone)]
 struct ConnectionHandler {
-    peers: Arc<Mutex<HashMap<[u8; 8], Option<TcpStream>>>>,
+    peers: Arc<Mutex<HashMap<[u8; 8], Option<(TcpStream, u8, u8)>>>>,
     notifier: Sender<[u8; 8]>
 }
 
@@ -63,24 +63,24 @@ impl ConnectionHandler {
         handler
     }
 
-    fn do_with_stream<T, E, F: Fn(&mut TcpStream) -> Result<T, E>>(&self, peerid: &[u8; 8], cb: F) -> T
+    fn do_with_stream<T, E, F: FnMut(&mut TcpStream, &mut u8, &u8) -> Result<T, E>>(&self, peerid: &[u8; 8], mut cb: F) -> T
     {
-        let waittime = Duration::from_secs(5);
+        let waittime = Duration::from_secs(10);
 
         loop {
             // The stream is always there, because we put it back
             // even if it fails.
-            let mut stream: TcpStream = {
+            let (mut stream, mut our_msgid, their_msgid): (TcpStream, u8, u8) = {
                 let mut peers = self.peers.lock().unwrap();
                 peers.get_mut(peerid).unwrap().take()
             }.unwrap();
 
-            let val = cb(&mut stream);
+            let val = cb(&mut stream, &mut our_msgid, &their_msgid);
 
             {
                 // Put it back
                 let mut peers = self.peers.lock().unwrap();
-                *peers.get_mut(peerid).unwrap() = Some(stream);
+                *peers.get_mut(peerid).unwrap() = Some((stream, our_msgid, their_msgid));
             }
 
             match val {
@@ -96,12 +96,53 @@ impl ConnectionHandler {
 
     fn read<T: Decodable>(&self, peerid: &[u8; 8]) -> T
     {
-        self.do_with_stream(peerid, |s| decode_from(s, Infinite))
+        self.do_with_stream(peerid, |s, ourid, _| {
+            match decode_from(s, Infinite) {
+                Ok(v) => {
+                    let _ = s.write_all(&NETWORK_ACK);
+                    let _ = s.flush();
+
+                    *ourid += 1;
+
+                    Ok(v)
+                },
+                Err(e) => {
+                    Err(e)
+                }
+            }
+        })
     }
 
     fn write<T: Encodable>(&self, peerid: &[u8; 8], obj: &T)
     {
-        self.do_with_stream(peerid, |s| encode_into(obj, s, Infinite))
+        let mut incremented = false;
+
+        self.do_with_stream(peerid, move |s, ourid, theirid| {
+            if !incremented {
+                *ourid += 1;
+                incremented = true;
+            }
+
+            if theirid >= ourid {
+                // They received it, we just didn't get an ACK back.
+                return Ok(())
+            }
+
+            if encode_into(obj, s, Infinite).is_err() {
+                return Err("couldn't send data".to_string());
+            }
+
+            let _ = s.flush();
+
+            let mut ack: [u8; 4] = [0; 4];
+            let _ = s.read_exact(&mut ack);
+
+            if ack != NETWORK_ACK {
+                return Err("bad ack".to_string())
+            }
+
+            Ok(())
+        })
     }
 
     fn run(&self, new_peers: Receiver<[u8; 8]>)
@@ -233,8 +274,13 @@ impl ConnectionHandler {
         info!("Transcript flushed to disk.");
     }
 
-    fn accept(&self, peerid: [u8; 8], stream: TcpStream) {
+    fn accept(&self, peerid: [u8; 8], mut stream: TcpStream, remote_msgid: u8) {
         use std::collections::hash_map::Entry::{Occupied, Vacant};
+
+        fn send_msgid(stream: &mut TcpStream, msgid: u8) {
+            let _ = stream.write_all(&[msgid]);
+            let _ = stream.flush();
+        }
 
         let mut peers = self.peers.lock().unwrap();
 
@@ -243,14 +289,20 @@ impl ConnectionHandler {
                 if already.get().is_none() {
                     warn!("Ignoring duplicate connection attempt (peerid={})", peerid.to_hex());
                 } else {
-                    already.insert(Some(stream));
+                    let our_msgid = match already.get() {
+                        &Some((_, our_msgid, _)) => our_msgid,
+                        _ => unreachable!()
+                    };
+                    send_msgid(&mut stream, our_msgid);
+                    already.insert(Some((stream, our_msgid, remote_msgid)));
                 }
             },
             Vacant(vacant) => {
                 match self.notifier.send(peerid) {
                     Ok(_) => {
                         info!("Accepted new connection (peerid={})", peerid.to_hex());
-                        vacant.insert(Some(stream));
+                        send_msgid(&mut stream, 0);
+                        vacant.insert(Some((stream, 0, remote_msgid)));
                     },
                     Err(_) => {
                         warn!("Rejecting connection from peerid={}, no longer accepting new players.", peerid.to_hex());
@@ -308,9 +360,11 @@ fn main() {
                     Ok(addr) => {
                         let mut magic = [0; 8];
                         let mut peerid = [0; 8];
+                        let mut msgi_buf: [u8; 1] = [0];
 
                         match stream.read_exact(&mut magic)
                                     .and_then(|_| stream.read_exact(&mut peerid))
+                                    .and_then(|_| stream.read_exact(&mut msgi_buf))
                         {
                             Err(e) => {
                                 warn!("Remote host {} did not handshake; {}", addr, e);
@@ -320,10 +374,10 @@ fn main() {
                                     warn!("Remote host {} did not supply correct network magic.", addr);
                                 } else {
                                     if
-                                        stream.set_read_timeout(Some(Duration::from_secs(5 * 60))).is_ok() &&
-                                        stream.set_write_timeout(Some(Duration::from_secs(5 * 60))).is_ok()
+                                        stream.set_read_timeout(Some(Duration::from_secs(NETWORK_TIMEOUT))).is_ok() &&
+                                        stream.set_write_timeout(Some(Duration::from_secs(NETWORK_TIMEOUT))).is_ok()
                                     {
-                                        handler.accept(peerid, stream);
+                                        handler.accept(peerid, stream, msgi_buf[0]);
                                     } else {
                                         warn!("Failed to set read/write timeouts for remote host {}", addr);
                                     }
