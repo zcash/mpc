@@ -69,29 +69,28 @@ fn main() {
     perform_diagnostics();
     prompt("Diagnostics complete. Press [ENTER] when you're ready to begin the ceremony.");
 
-    let (privkey, pubkey, comm) = {
-        let seed = get_entropy();
+    let mut chacha_rng = rand::chacha::ChaChaRng::from_seed(&get_entropy());
 
-        let mut chacha_rng = rand::chacha::ChaChaRng::from_seed(&seed);
+    let privkey = PrivateKey::new(&mut chacha_rng);
+    let pubkey = privkey.pubkey(&mut chacha_rng);
+    let comm = pubkey.hash();
 
-        let privkey = PrivateKey::new(&mut chacha_rng);
-        let pubkey = privkey.pubkey(&mut chacha_rng);
-        let comm = pubkey.hash();
-
-        (privkey, pubkey, comm)
-    };
-
-    let mut stage1: Stage1Contents = read_disc(
+    let (hash_of_commitments, mut stage1): (Digest512, Stage1Contents) = read_disc(
         "A",
         &format!("Commitment: {}\n\n\
                   Please type the above commitment into the networked machine.\n\n\
                   Also, write the string down on a piece of paper.\n\n\
                   The networked machine should produce disc 'A'.\n\n\
                   When disc 'A' is in the DVD drive, press [ENTER].", comm.to_string()),
-        |f| {
-            decode_from(f, Infinite)
+        |f| -> Result<_, bincode::rustc_serialize::DecodingError> {
+            let hash_of_commitments: Digest512 = try!(decode_from(f, Infinite));
+            let stage: Stage1Contents = try!(decode_from(f, Infinite));
+
+            Ok((hash_of_commitments, stage))
         }
     );
+
+    let nizks = pubkey.nizks(&mut chacha_rng, &privkey, &hash_of_commitments);
 
     reset();
     println!("Please wait while disc 'B' is computed... This could take 1 or 2 hours.");
@@ -102,6 +101,7 @@ fn main() {
         "C",
         |f| {
             try!(encode_into(&pubkey, f, Infinite));
+            try!(encode_into(&nizks, f, Infinite));
             encode_into(&stage1, f, Infinite)
         },
         |f| {

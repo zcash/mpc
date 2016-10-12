@@ -195,24 +195,29 @@ fn main() {
     handler.write(&comm);
 
     println!("Waiting to receive disc 'A' from coordinator server...");
+    let hash_of_commitments = handler.read::<Digest512>();
     let stage1_before = handler.read::<Stage1Contents>();
 
-    let (pubkey, stage1_after): (PublicKey, Stage1Contents) = exchange_disc(
+    let (pubkey, nizks, stage1_after): (PublicKey, PublicKeyNizks, Stage1Contents) = exchange_disc(
         "A",
         "B",
         |f| -> Result<(), bincode::rustc_serialize::EncodingError> {
+            try!(encode_into(&hash_of_commitments, f, Infinite));
+
             encode_into(&stage1_before, f, Infinite)
         },
-        |f| -> Result<(PublicKey, Stage1Contents), bincode::rustc_serialize::DecodingError> {
+        |f| -> Result<(PublicKey, PublicKeyNizks, Stage1Contents), bincode::rustc_serialize::DecodingError> {
             let pubkey: PublicKey = try!(decode_from(f, Infinite));
+            let nizks: PublicKeyNizks = try!(decode_from(f, Infinite));
             let stage: Stage1Contents = try!(decode_from(f, Infinite));
 
-            Ok((pubkey, stage))
+            Ok((pubkey, nizks, stage))
         }
     );
 
     println!("Sending disc 'B' to the coordinator server...");
     handler.write(&pubkey);
+    handler.write(&nizks);
     handler.write(&stage1_after);
 
     drop(stage1_before);

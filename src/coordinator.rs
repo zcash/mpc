@@ -183,6 +183,9 @@ impl ConnectionHandler {
         // The remote end should never hang up, so this should always be `PLAYERS`.
         assert_eq!(peers.len(), PLAYERS);
 
+        // Hash of all the commitments.
+        let hash_of_commitments = Digest512::from(&commitments).unwrap();
+
         info!("All players are ready");
 
         info!("Initializing stage1 with constraint system");
@@ -191,13 +194,22 @@ impl ConnectionHandler {
         for (comm, peerid) in commitments.iter().zip(peers.iter()) {
             info!("Sending stage1 to peerid={}", peerid.to_hex());
 
+            self.write(peerid, &hash_of_commitments);
             self.write(peerid, &stage1);
 
             info!("Receiving public key from peerid={}", peerid.to_hex());
             let pubkey = self.read::<PublicKey>(peerid);
 
+            info!("Receiving nizks from peerid={}", peerid.to_hex());
+            let nizks = self.read::<PublicKeyNizks>(peerid);
+
             if pubkey.hash() != *comm {
                 error!("Peer did not properly commit to their public key (peerid={})", peerid.to_hex());
+                panic!("cannot recover.");
+            }
+
+            if !nizks.is_valid(&pubkey, &hash_of_commitments) {
+                error!("Peer did not provide proof that they possess the secrets! (peerid={})", peerid.to_hex());
                 panic!("cannot recover.");
             }
 
@@ -212,6 +224,8 @@ impl ConnectionHandler {
             } else {
                 info!("Writing `PublicKey` to transcript");
                 encode_into(&pubkey, &mut transcript, Infinite).unwrap();
+                info!("Writing `PublicKeyNizks` to transcript");
+                encode_into(&nizks, &mut transcript, Infinite).unwrap();
                 info!("Writing new stage1 to transcript");
                 encode_into(&new_stage1, &mut transcript, Infinite).unwrap();
 

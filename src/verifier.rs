@@ -45,11 +45,15 @@ fn main() {
         println!("Player {} commitment: {}", i+1, comm.to_string());
     }
 
+    // Hash of all the commitments.
+    let hash_of_commitments = Digest512::from(&commitments).unwrap();
+
     let mut stage1 = Stage1Contents::new(&cs);
 
     for i in 0..num_players {
         {
             let mut diskA = vec![];
+            encode_into(&hash_of_commitments, &mut diskA, Infinite).unwrap();
             encode_into(&stage1, &mut diskA, Infinite).unwrap();
             let hash = Digest256::from_reader(&mut (&diskA[..]));
             println!("Player {} hash of disk A: {}", i+1, hash.to_string());
@@ -60,6 +64,12 @@ fn main() {
             panic!("Invalid commitment from player {}", i);
         }
 
+        let nizks: PublicKeyNizks = decode_from(&mut f, Infinite).unwrap();
+
+        if !nizks.is_valid(&pubkey, &hash_of_commitments) {
+            panic!("Invalid nizks from player {}", i);
+        }
+
         let new_stage: Stage1Contents = decode_from(&mut f, Infinite).unwrap();
         if !new_stage.verify_transform(&stage1, &pubkey) {
             panic!("Invalid stage1 transformation from player {}", i);
@@ -68,6 +78,7 @@ fn main() {
         {
             let mut diskB = vec![];
             encode_into(&pubkey, &mut diskB, Infinite).unwrap();
+            encode_into(&nizks, &mut diskB, Infinite).unwrap();
             encode_into(&new_stage, &mut diskB, Infinite).unwrap();
             let hash = Digest256::from_reader(&mut (&diskB[..]));
             println!("Player {} hash of disk B: {}", i+1, hash.to_string());

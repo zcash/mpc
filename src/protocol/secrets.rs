@@ -2,7 +2,7 @@ use bn::*;
 use rand::Rng;
 use super::spair::{Spair, same_power};
 use super::nizk::Nizk;
-use super::digest::Digest256;
+use super::digest::{Digest512,Digest256};
 #[cfg(feature = "snark")]
 use snark::*;
 use rustc_serialize::{Encodable, Encoder, Decodable, Decoder};
@@ -27,41 +27,36 @@ struct PublicKeyInner {
     f5_alpha_c: Spair<G1>, // (f5, f5 * alpha_c)
     f6_rho_b: Spair<G1>, // (f6, f6 * rho_b)
     f7_rho_a_rho_b: Spair<G1>, // (f7, f7 * rho_a * rho_b)
-    f8_gamma: Spair<G1>, // (f8, f8 * gamma)
+    f8_gamma: Spair<G1> // (f8, f8 * gamma)
+}
 
-    nizk_tau: Nizk<G2>,
-    nizk_alpha_a: Nizk<G1>,
-    nizk_alpha_b: Nizk<G2>,
-    nizk_alpha_c: Nizk<G1>,
-    nizk_rho_a: Nizk<G2>,
-    nizk_rho_b: Nizk<G1>,
-    nizk_beta: Nizk<G2>,
-    nizk_gamma: Nizk<G1>
+#[derive(RustcEncodable, RustcDecodable)]
+pub struct PublicKeyNizks {
+    tau: Nizk<G2>,
+    alpha_a: Nizk<G1>,
+    alpha_b: Nizk<G2>,
+    alpha_c: Nizk<G1>,
+    rho_a: Nizk<G2>,
+    rho_b: Nizk<G1>,
+    beta: Nizk<G2>,
+    gamma: Nizk<G1>
+}
+
+impl PublicKeyNizks {
+    pub fn is_valid(&self, pubkey: &PublicKey, extra: &Digest512) -> bool {
+        pubkey.tau_g2().verify_nizk(&self.tau, extra) &&
+        pubkey.alpha_a_g1().verify_nizk(&self.alpha_a, extra) &&
+        pubkey.alpha_b_g2().verify_nizk(&self.alpha_b, extra) &&
+        pubkey.alpha_c_g1().verify_nizk(&self.alpha_c, extra) &&
+        pubkey.rho_a_g2().verify_nizk(&self.rho_a, extra) &&
+        pubkey.rho_b_g1().verify_nizk(&self.rho_b, extra) &&
+        pubkey.beta_g2().verify_nizk(&self.beta, extra) &&
+        pubkey.gamma_g1().verify_nizk(&self.gamma, extra)
+    }
 }
 
 impl PublicKey {
     fn is_valid(&self) -> bool {
-        // Ensure that all the fields are well-formed, so we can
-        // safely form s-pairs out of them.
-        self.is_well_formed() &&
-
-        // The NIZKs verify that the creator of the public key
-        // knows the secrets.
-        self.nizks_are_valid()
-    }
-
-    fn nizks_are_valid(&self) -> bool {
-        self.0.f3_tau.verify_nizk(&self.0.nizk_tau) &&
-        self.0.f4_alpha_a.verify_nizk(&self.0.nizk_alpha_a) &&
-        self.alpha_b_g2().verify_nizk(&self.0.nizk_alpha_b) &&
-        self.0.f5_alpha_c.verify_nizk(&self.0.nizk_alpha_c) &&
-        self.rho_a_g2().verify_nizk(&self.0.nizk_rho_a) &&
-        self.0.f6_rho_b.verify_nizk(&self.0.nizk_rho_b) &&
-        self.beta_g2().verify_nizk(&self.0.nizk_beta) &&
-        self.0.f8_gamma.verify_nizk(&self.0.nizk_gamma)
-    }
-
-    fn is_well_formed(&self) -> bool {
         !self.0.f1.is_zero() &&
         !self.0.f1_rho_a.is_zero() &&
         !self.0.f1_rho_a_alpha_a.is_zero() &&
@@ -80,6 +75,19 @@ impl PublicKey {
 
     pub fn hash(&self) -> Digest256 {
         Digest256::from(self).expect("PublicKey should never fail to encode")
+    }
+
+    pub fn nizks<R: Rng>(&self, rng: &mut R, privkey: &PrivateKey, extra: &Digest512) -> PublicKeyNizks {
+        PublicKeyNizks {
+            tau: self.tau_g2().nizk(rng, privkey.tau, extra),
+            alpha_a: self.alpha_a_g1().nizk(rng, privkey.alpha_a, extra),
+            alpha_b: self.alpha_b_g2().nizk(rng, privkey.alpha_b, extra),
+            alpha_c: self.alpha_c_g1().nizk(rng, privkey.alpha_c, extra),
+            rho_a: self.rho_a_g2().nizk(rng, privkey.rho_a, extra),
+            rho_b: self.rho_b_g1().nizk(rng, privkey.rho_b, extra),
+            beta: self.beta_g2().nizk(rng, privkey.beta, extra),
+            gamma: self.gamma_g1().nizk(rng, privkey.gamma, extra)
+        }
     }
 
     pub fn tau_g2(&self) -> Spair<G2> {
@@ -254,15 +262,6 @@ impl PrivateKey {
         let f7_rho_a_rho_b = Spair::random(rng, self.rho_a * self.rho_b).unwrap();
         let f8_gamma = Spair::random(rng, self.gamma).unwrap();
 
-        let nizk_tau = f3_tau.nizk(rng, self.tau);
-        let nizk_alpha_a = f4_alpha_a.nizk(rng, self.alpha_a);
-        let nizk_alpha_b = Nizk::new(rng, f1_rho_a_rho_b, self.alpha_b);
-        let nizk_alpha_c = f5_alpha_c.nizk(rng, self.alpha_c);
-        let nizk_rho_a = Nizk::new(rng, f1, self.rho_a);
-        let nizk_rho_b = f6_rho_b.nizk(rng, self.rho_b);
-        let nizk_beta = Nizk::new(rng, f2, self.beta);
-        let nizk_gamma = f8_gamma.nizk(rng, self.gamma);
-
         let tmp = PublicKey(PublicKeyInner {
             f1: f1,
             f1_rho_a: f1_rho_a,
@@ -279,22 +278,29 @@ impl PrivateKey {
             f5_alpha_c: f5_alpha_c,
             f6_rho_b: f6_rho_b,
             f7_rho_a_rho_b: f7_rho_a_rho_b,
-            f8_gamma: f8_gamma,
-
-            nizk_tau: nizk_tau,
-            nizk_alpha_a: nizk_alpha_a,
-            nizk_alpha_b: nizk_alpha_b,
-            nizk_alpha_c: nizk_alpha_c,
-            nizk_rho_a: nizk_rho_a,
-            nizk_rho_b: nizk_rho_b,
-            nizk_beta: nizk_beta,
-            nizk_gamma: nizk_gamma
+            f8_gamma: f8_gamma
         });
 
         assert!(tmp.is_valid());
 
         tmp
     }
+}
+
+#[test]
+fn pubkey_nizks() {
+    let rng = &mut ::rand::thread_rng();
+
+    let privkey = PrivateKey::new(rng);
+    let pubkey = privkey.pubkey(rng);
+
+    let extra = Digest512::from(&"test").unwrap();
+    let extra_wrong = Digest512::from(&"testt").unwrap();
+
+    let nizks = pubkey.nizks(rng, &privkey, &extra);
+
+    assert!(nizks.is_valid(&pubkey, &extra));
+    assert!(!nizks.is_valid(&pubkey, &extra_wrong));
 }
 
 #[test]
@@ -334,7 +340,7 @@ fn pubkey_consistency() {
             *change = *change + *change;
         }
 
-        assert!(pubkey.is_well_formed() == !expected);
+        assert!(pubkey.is_valid() == !expected);
     }
 
     let rng = &mut ::rand::thread_rng();
