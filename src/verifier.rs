@@ -9,6 +9,7 @@ extern crate blake2_rfc;
 extern crate bincode;
 extern crate byteorder;
 
+#[macro_use]
 mod protocol;
 
 mod consts;
@@ -52,11 +53,12 @@ fn main() {
 
     for i in 0..num_players {
         {
-            let mut diskA = vec![];
-            encode_into(&hash_of_commitments, &mut diskA, Infinite).unwrap();
-            encode_into(&stage1, &mut diskA, Infinite).unwrap();
-            let hash = Digest256::from_reader(&mut (&diskA[..]));
-            println!("Player {} hash of disk A: {}", i+1, hash.to_string());
+            println!("Player {} hash of disk A: {}", i+1,
+                digest256_from_parts!(
+                    hash_of_commitments,
+                    stage1
+                ).to_string()
+            );
         }
         let pubkey: PublicKey = decode_from(&mut f, Infinite).unwrap();
 
@@ -76,12 +78,13 @@ fn main() {
         }
 
         {
-            let mut diskB = vec![];
-            encode_into(&pubkey, &mut diskB, Infinite).unwrap();
-            encode_into(&nizks, &mut diskB, Infinite).unwrap();
-            encode_into(&new_stage, &mut diskB, Infinite).unwrap();
-            let hash = Digest256::from_reader(&mut (&diskB[..]));
-            println!("Player {} hash of disk B: {}", i+1, hash.to_string());
+            println!("Player {} hash of disk B: {}", i+1,
+                digest256_from_parts!(
+                    pubkey,
+                    nizks,
+                    new_stage
+                ).to_string()
+            );
         }
 
         stage1 = new_stage;
@@ -92,10 +95,11 @@ fn main() {
 
     for i in 0..num_players {
         {
-            let mut diskC = vec![];
-            encode_into(&stage2, &mut diskC, Infinite).unwrap();
-            let hash = Digest256::from_reader(&mut (&diskC[..]));
-            println!("Player {} hash of disk C: {}", i+1, hash.to_string());
+            println!("Player {} hash of disk C: {}", i+1,
+                digest256_from_parts!(
+                    stage2
+                ).to_string()
+            );
         }
 
         let new_stage: Stage2Contents = decode_from(&mut f, Infinite).unwrap();
@@ -104,10 +108,11 @@ fn main() {
         }
 
         {
-            let mut diskD = vec![];
-            encode_into(&new_stage, &mut diskD, Infinite).unwrap();
-            let hash = Digest256::from_reader(&mut (&diskD[..]));
-            println!("Player {} hash of disk D: {}", i+1, hash.to_string());
+            println!("Player {} hash of disk D: {}", i+1,
+                digest256_from_parts!(
+                    new_stage
+                ).to_string()
+            );
         }
 
         stage2 = new_stage;
@@ -117,10 +122,11 @@ fn main() {
 
     for i in 0..num_players {
         {
-            let mut diskE = vec![];
-            encode_into(&stage3, &mut diskE, Infinite).unwrap();
-            let hash = Digest256::from_reader(&mut (&diskE[..]));
-            println!("Player {} hash of disk E: {}", i+1, hash.to_string());
+            println!("Player {} hash of disk E: {}", i+1,
+                digest256_from_parts!(
+                    stage3
+                ).to_string()
+            );
         }
 
         let new_stage: Stage3Contents = decode_from(&mut f, Infinite).unwrap();
@@ -129,10 +135,11 @@ fn main() {
         }
 
         {
-            let mut diskF = vec![];
-            encode_into(&new_stage, &mut diskF, Infinite).unwrap();
-            let hash = Digest256::from_reader(&mut (&diskF[..]));
-            println!("Player {} hash of disk F: {}", i+1, hash.to_string());
+            println!("Player {} hash of disk F: {}", i+1,
+                digest256_from_parts!(
+                    new_stage
+                ).to_string()
+            );
         }
 
         stage3 = new_stage;

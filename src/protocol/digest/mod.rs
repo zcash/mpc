@@ -10,6 +10,19 @@ use blake2_rfc::blake2s::blake2s;
 mod base58;
 use self::base58::{ToBase58, FromBase58};
 
+#[macro_export]
+macro_rules! digest256_from_parts {
+    ($($h:ident),*) => ({
+        let mut contents = vec![];
+
+        $(
+            encode_into(&$h, &mut contents, Infinite).unwrap();
+        )*
+
+        Digest256::from_reader(&mut (&contents[..]))
+    })
+}
+
 macro_rules! digest_impl {
     ($name:ident, $bytes:expr, $hash:ident) => {
         pub struct $name(pub [u8; $bytes]);
