@@ -329,6 +329,7 @@ pub fn write_disc<
     }
 
     let mut already_burned = false;
+    eject();
 
     loop {
         if already_burned {
@@ -343,8 +344,6 @@ pub fn write_disc<
 
         match read_from_dvd(newdisc_remotepath, newdisc_localpath) {
             DvdStatus::Blank => {
-                println!("Burning...");
-
                 write_to_dvd(newdisc_remotepath, newdisc_localpath);
                 eject();
                 already_burned = true;
