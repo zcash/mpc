@@ -197,21 +197,24 @@ fn main() {
     println!("Waiting to receive disc 'A' from coordinator server...");
     let hash_of_commitments = handler.read::<Digest512>();
     let stage1_before = handler.read::<Stage1Contents>();
+    let prev_msg_hash = handler.read::<Digest256>();
 
-    let (pubkey, nizks, stage1_after): (PublicKey, PublicKeyNizks, Stage1Contents) = exchange_disc(
+    let (pubkey, nizks, stage1_after, ihash): (PublicKey, PublicKeyNizks, Stage1Contents, Digest256) = exchange_disc(
         "A",
         "B",
         |f| -> Result<(), bincode::rustc_serialize::EncodingError> {
             try!(encode_into(&hash_of_commitments, f, Infinite));
+            try!(encode_into(&stage1_before, f, Infinite));
 
-            encode_into(&stage1_before, f, Infinite)
+            encode_into(&prev_msg_hash, f, Infinite)
         },
-        |f| -> Result<(PublicKey, PublicKeyNizks, Stage1Contents), bincode::rustc_serialize::DecodingError> {
+        |f, _| -> Result<(PublicKey, PublicKeyNizks, Stage1Contents, Digest256), bincode::rustc_serialize::DecodingError> {
             let pubkey: PublicKey = try!(decode_from(f, Infinite));
             let nizks: PublicKeyNizks = try!(decode_from(f, Infinite));
             let stage: Stage1Contents = try!(decode_from(f, Infinite));
+            let ihash: Digest256 = try!(decode_from(f, Infinite));
 
-            Ok((pubkey, nizks, stage))
+            Ok((pubkey, nizks, stage, ihash))
         }
     );
 
@@ -219,46 +222,61 @@ fn main() {
     handler.write(&pubkey);
     handler.write(&nizks);
     handler.write(&stage1_after);
+    handler.write(&ihash);
 
     drop(stage1_before);
     drop(stage1_after);
 
     println!("Waiting to receive disc 'C' from coordinator server...");
     let stage2_before = handler.read::<Stage2Contents>();
+    let prev_msg_hash = handler.read::<Digest256>();
 
-    let stage2_after: Stage2Contents = exchange_disc(
+    let (stage2_after, ihash): (Stage2Contents, Digest256) = exchange_disc(
         "C",
         "D",
         |f| {
-            encode_into(&stage2_before, f, Infinite)
+            try!(encode_into(&stage2_before, f, Infinite));
+
+            encode_into(&prev_msg_hash, f, Infinite)
         },
-        |f| {
-            decode_from(f, Infinite)
+        |f, _| -> Result<(Stage2Contents, Digest256), bincode::rustc_serialize::DecodingError> {
+            let stage2_after: Stage2Contents = try!(decode_from(f, Infinite));
+            let ihash: Digest256 = try!(decode_from(f, Infinite));
+
+            Ok((stage2_after, ihash))
         }
     );
 
     println!("Sending disc 'D' to the coordinator server...");
     handler.write(&stage2_after);
+    handler.write(&ihash);
 
     drop(stage2_before);
     drop(stage2_after);
 
     println!("Waiting to receive disc 'E' from coordinator server...");
     let stage3_before = handler.read::<Stage3Contents>();
+    let prev_msg_hash = handler.read::<Digest256>();
 
-    let stage3_after: Stage3Contents = exchange_disc(
+    let (stage3_after, ihash): (Stage3Contents, Digest256) = exchange_disc(
         "E",
         "F",
         |f| {
-            encode_into(&stage3_before, f, Infinite)
+            try!(encode_into(&stage3_before, f, Infinite));
+
+            encode_into(&prev_msg_hash, f, Infinite)
         },
-        |f| {
-            decode_from(f, Infinite)
+        |f, _| -> Result<(Stage3Contents, Digest256), bincode::rustc_serialize::DecodingError> {
+            let stage3_after: Stage3Contents = try!(decode_from(f, Infinite));
+            let ihash: Digest256 = try!(decode_from(f, Infinite));
+
+            Ok((stage3_after, ihash))
         }
     );
 
     println!("Sending disc 'F' to the coordinator server...");
     handler.write(&stage3_after);
+    handler.write(&ihash);
 
     drop(stage3_before);
     drop(stage3_after);
@@ -266,7 +284,7 @@ fn main() {
     eject();
 
     loop {
-        prompt("Done! The other machine can be powered down and disposed of.\n\
+        prompt("Done! Both machines can be shut down.\n\
                 Do not destroy any DVDs, and ensure there are no DVDs still\n\
                 inside of either machine.");
     }

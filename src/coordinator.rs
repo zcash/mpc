@@ -15,6 +15,7 @@ extern crate env_logger;
 extern crate time;
 extern crate ansi_term;
 
+#[macro_use]
 mod protocol;
 use self::protocol::*;
 
@@ -188,6 +189,9 @@ impl ConnectionHandler {
 
         info!("All players are ready");
 
+        // Hash of the last message
+        let mut last_message_hash = Digest256::from(&commitments).unwrap();
+
         info!("Initializing stage1 with constraint system");
 
         let mut stage1 = Stage1Contents::new(&cs);
@@ -196,6 +200,7 @@ impl ConnectionHandler {
 
             self.write(peerid, &hash_of_commitments);
             self.write(peerid, &stage1);
+            self.write(peerid, &last_message_hash);
 
             info!("Receiving public key from peerid={}", peerid.to_hex());
             let pubkey = self.read::<PublicKey>(peerid);
@@ -216,7 +221,7 @@ impl ConnectionHandler {
             info!("Receiving stage1 transformation from peerid={}", peerid.to_hex());
             let new_stage1 = self.read::<Stage1Contents>(peerid);
 
-            info!("Verifying transformation of stage1 from peerid={}", peerid.to_hex());
+            let ihash = self.read::<Digest256>(peerid);
 
             if !new_stage1.is_well_formed(&stage1) {
                 error!("Peer did not perform valid stage1 transformation (peerid={})", peerid.to_hex());
@@ -229,6 +234,12 @@ impl ConnectionHandler {
                 info!("Writing new stage1 to transcript");
                 encode_into(&new_stage1, &mut transcript, Infinite).unwrap();
 
+                encode_into(&ihash, &mut transcript, Infinite).unwrap();
+
+                last_message_hash = digest256_from_parts!(
+                    pubkey, nizks, new_stage1, ihash
+                );
+
                 stage1 = new_stage1;
             }
         }
@@ -240,12 +251,12 @@ impl ConnectionHandler {
             info!("Sending stage2 to peerid={}", peerid.to_hex());
 
             self.write(peerid, &stage2);
+            self.write(peerid, &last_message_hash);
 
             info!("Receiving stage2 transformation from peerid={}", peerid.to_hex());
 
             let new_stage2 = self.read::<Stage2Contents>(peerid);
-
-            info!("Verifying transformation of stage2 from peerid={}", peerid.to_hex());
+            let ihash = self.read::<Digest256>(peerid);
 
             if !new_stage2.is_well_formed(&stage2) {
                 error!("Peer did not perform valid stage2 transformation (peerid={})", peerid.to_hex());
@@ -253,6 +264,12 @@ impl ConnectionHandler {
             } else {
                 info!("Writing new stage2 to transcript");
                 encode_into(&new_stage2, &mut transcript, Infinite).unwrap();
+                encode_into(&ihash, &mut transcript, Infinite).unwrap();
+
+                last_message_hash = digest256_from_parts!(
+                    new_stage2, ihash
+                );
+
                 stage2 = new_stage2;
             }
         }
@@ -264,10 +281,12 @@ impl ConnectionHandler {
             info!("Sending stage3 to peerid={}", peerid.to_hex());
 
             self.write(peerid, &stage3);
+            self.write(peerid, &last_message_hash);
 
             info!("Receiving stage3 transformation from peerid={}", peerid.to_hex());
 
             let new_stage3 = self.read::<Stage3Contents>(peerid);
+            let ihash = self.read::<Digest256>(peerid);
 
             info!("Verifying transformation of stage3 from peerid={}", peerid.to_hex());
 
@@ -277,6 +296,12 @@ impl ConnectionHandler {
             } else {
                 info!("Writing new stage3 to transcript");
                 encode_into(&new_stage3, &mut transcript, Infinite).unwrap();
+                encode_into(&ihash, &mut transcript, Infinite).unwrap();
+
+                last_message_hash = digest256_from_parts!(
+                    new_stage3, ihash
+                );
+
                 stage3 = new_stage3;
             }
         }

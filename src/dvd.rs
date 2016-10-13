@@ -232,7 +232,7 @@ pub fn exchange_disc<
     R1,
     R2,
     F1: Fn(&mut File) -> Result<(), R1>,
-    F2: Fn(&mut TemporaryFile) -> Result<T, R2>
+    F2: Fn(&mut TemporaryFile, Option<Digest256>) -> Result<T, R2>
 >(
     our_disc: &str,
     their_disc: &str,
@@ -269,13 +269,16 @@ pub fn exchange_disc<
 
         match read_from_dvd(&format!("disc{}", their_disc), &format!("{}disc{}", ::DIRECTORY_PREFIX, their_disc)) {
             DvdStatus::File(mut f) => {
+                let h;
                 if ::ASK_USER_TO_RECORD_HASHES {
-                    let h = hash_of_file(&mut f);
-                    write_down_disc_please(&h, their_disc);
+                    h = Some(hash_of_file(&mut f));
+                    write_down_disc_please(&h.clone().unwrap(), their_disc);
                     f.reset();
+                } else {
+                    h = None;
                 }
 
-                match their_cb(&mut f) {
+                match their_cb(&mut f, h) {
                     Ok(data) => {
                         let _ = fs::remove_file(newdisc_localpath);
 
@@ -356,19 +359,22 @@ pub fn write_disc<
     }
 }
 
-pub fn read_disc<T, R, F: Fn(&mut TemporaryFile) -> Result<T, R>>(name: &str, message: &str, cb: F) -> T {
+pub fn read_disc<T, R, F: Fn(&mut TemporaryFile, Option<Digest256>) -> Result<T, R>>(name: &str, message: &str, cb: F) -> T {
     prompt(message);
 
     loop {
         match read_from_dvd(&format!("disc{}", name), &format!("{}disc{}", ::DIRECTORY_PREFIX, name)) {
             DvdStatus::File(mut f) => {
+                let h;
                 if ::ASK_USER_TO_RECORD_HASHES {
-                    let h = hash_of_file(&mut f);
-                    write_down_disc_please(&h, name);
+                    h = Some(hash_of_file(&mut f));
+                    write_down_disc_please(&h.clone().unwrap(), name);
                     f.reset();
+                } else {
+                    h = None;
                 }
 
-                match cb(&mut f) {
+                match cb(&mut f, h) {
                     Ok(data) => {
                         return data;
                     },

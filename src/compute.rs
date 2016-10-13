@@ -75,18 +75,18 @@ fn main() {
     let pubkey = privkey.pubkey(&mut chacha_rng);
     let comm = pubkey.hash();
 
-    let (hash_of_commitments, mut stage1): (Digest512, Stage1Contents) = read_disc(
+    let (hash_of_commitments, mut stage1, prev_msg_hash): (Digest512, Stage1Contents, Digest256) = read_disc(
         "A",
         &format!("Commitment: {}\n\n\
                   Please type the above commitment into the networked machine.\n\n\
                   Also, write the string down on a piece of paper.\n\n\
                   The networked machine should produce disc 'A'.\n\n\
                   When disc 'A' is in the DVD drive, press [ENTER].", comm.to_string()),
-        |f| -> Result<_, bincode::rustc_serialize::DecodingError> {
+        |f, p| -> Result<_, bincode::rustc_serialize::DecodingError> {
             let hash_of_commitments: Digest512 = try!(decode_from(f, Infinite));
             let stage: Stage1Contents = try!(decode_from(f, Infinite));
 
-            Ok((hash_of_commitments, stage))
+            Ok((hash_of_commitments, stage, p.unwrap()))
         }
     );
 
@@ -96,16 +96,20 @@ fn main() {
     println!("Please wait while disc 'B' is computed... This could take 1 or 2 hours.");
     stage1.transform(&privkey);
 
-    let mut stage2: Stage2Contents = exchange_disc(
+    let (mut stage2, prev_msg_hash): (Stage2Contents, Digest256) = exchange_disc(
         "B",
         "C",
         |f| {
             try!(encode_into(&pubkey, f, Infinite));
             try!(encode_into(&nizks, f, Infinite));
-            encode_into(&stage1, f, Infinite)
+            try!(encode_into(&stage1, f, Infinite));
+
+            encode_into(&prev_msg_hash, f, Infinite)
         },
-        |f| {
-            decode_from(f, Infinite)
+        |f, p| -> Result<(Stage2Contents, Digest256), bincode::rustc_serialize::DecodingError> {
+            let stage2 = try!(decode_from(f, Infinite));
+
+            Ok((stage2, p.unwrap()))
         }
     );
 
@@ -115,14 +119,18 @@ fn main() {
     println!("Please wait while disc 'D' is computed... This could take 1 or 2 hours.");
     stage2.transform(&privkey);
 
-    let mut stage3: Stage3Contents = exchange_disc(
+    let (mut stage3, prev_msg_hash): (Stage3Contents, Digest256) = exchange_disc(
         "D",
         "E",
         |f| {
-            encode_into(&stage2, f, Infinite)
+            try!(encode_into(&stage2, f, Infinite));
+
+            encode_into(&prev_msg_hash, f, Infinite)
         },
-        |f| {
-            decode_from(f, Infinite)
+        |f, p| -> Result<(Stage3Contents, Digest256), bincode::rustc_serialize::DecodingError> {
+            let stage3 = try!(decode_from(f, Infinite));
+
+            Ok((stage3, p.unwrap()))
         }
     );
 
@@ -135,7 +143,9 @@ fn main() {
     write_disc(
         "F",
         |f| {
-            encode_into(&stage3, f, Infinite)
+            try!(encode_into(&stage3, f, Infinite));
+
+            encode_into(&prev_msg_hash, f, Infinite)
         },
     );
 }

@@ -49,17 +49,21 @@ fn main() {
     // Hash of all the commitments.
     let hash_of_commitments = Digest512::from(&commitments).unwrap();
 
+    // Hash of the last message
+    let mut last_message_hash = Digest256::from(&commitments).unwrap();
+
     let mut stage1 = Stage1Contents::new(&cs);
 
     for i in 0..num_players {
-        {
-            println!("Player {} hash of disk A: {}", i+1,
-                digest256_from_parts!(
-                    hash_of_commitments,
-                    stage1
-                ).to_string()
+        let expected_ihash = {
+            let h = digest256_from_parts!(
+                hash_of_commitments,
+                stage1,
+                last_message_hash
             );
-        }
+            println!("Player {} hash of disk A: {}", i+1, h.to_string());
+            h
+        };
         let pubkey: PublicKey = decode_from(&mut f, Infinite).unwrap();
 
         if pubkey.hash() != commitments[i] {
@@ -77,14 +81,17 @@ fn main() {
             panic!("Invalid stage1 transformation from player {}", i);
         }
 
+        let ihash: Digest256 = decode_from(&mut f, Infinite).unwrap();
+        assert!(ihash == expected_ihash);
+
         {
-            println!("Player {} hash of disk B: {}", i+1,
-                digest256_from_parts!(
-                    pubkey,
-                    nizks,
-                    new_stage
-                ).to_string()
+            last_message_hash = digest256_from_parts!(
+                pubkey,
+                nizks,
+                new_stage,
+                ihash
             );
+            println!("Player {} hash of disk B: {}", i+1, last_message_hash.to_string());
         }
 
         stage1 = new_stage;
@@ -94,25 +101,31 @@ fn main() {
     let mut stage2 = Stage2Contents::new(&cs, &stage1);
 
     for i in 0..num_players {
-        {
-            println!("Player {} hash of disk C: {}", i+1,
-                digest256_from_parts!(
-                    stage2
-                ).to_string()
+        let expected_ihash = {
+            let h = digest256_from_parts!(
+                stage2,
+                last_message_hash
             );
-        }
+            println!("Player {} hash of disk C: {}", i+1, h.to_string());
+
+            h
+        };
 
         let new_stage: Stage2Contents = decode_from(&mut f, Infinite).unwrap();
         if !new_stage.verify_transform(&stage2, &pubkeys[i]) {
             panic!("Invalid stage2 transformation from player {}", i);
         }
 
+        let ihash: Digest256 = decode_from(&mut f, Infinite).unwrap();
+        assert!(ihash == expected_ihash);
+
         {
-            println!("Player {} hash of disk D: {}", i+1,
-                digest256_from_parts!(
-                    new_stage
-                ).to_string()
+            last_message_hash = digest256_from_parts!(
+                new_stage,
+                ihash
             );
+
+            println!("Player {} hash of disk D: {}", i+1, last_message_hash.to_string());
         }
 
         stage2 = new_stage;
@@ -121,25 +134,31 @@ fn main() {
     let mut stage3 = Stage3Contents::new(&cs, &stage2);
 
     for i in 0..num_players {
-        {
-            println!("Player {} hash of disk E: {}", i+1,
-                digest256_from_parts!(
-                    stage3
-                ).to_string()
+        let expected_ihash = {
+            let h = digest256_from_parts!(
+                stage3,
+                last_message_hash
             );
-        }
+            println!("Player {} hash of disk E: {}", i+1, h.to_string());
+
+            h
+        };
 
         let new_stage: Stage3Contents = decode_from(&mut f, Infinite).unwrap();
         if !new_stage.verify_transform(&stage3, &pubkeys[i]) {
             panic!("Invalid stage3 transformation from player {}", i);
         }
 
+        let ihash: Digest256 = decode_from(&mut f, Infinite).unwrap();
+
+        assert!(expected_ihash == ihash);
+
         {
-            println!("Player {} hash of disk F: {}", i+1,
-                digest256_from_parts!(
-                    new_stage
-                ).to_string()
+            last_message_hash = digest256_from_parts!(
+                new_stage,
+                ihash
             );
+            println!("Player {} hash of disk F: {}", i+1, last_message_hash.to_string());
         }
 
         stage3 = new_stage;
