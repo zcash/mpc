@@ -66,9 +66,11 @@ impl ConnectionHandler {
         if self.s.write(&[self.msgid]).is_err() {
             return None;
         }
-        let _ = self.s.flush().is_err();
-        let _ = self.s.set_read_timeout(Some(Duration::from_secs(NETWORK_TIMEOUT))).is_err();
-        let _ = self.s.set_write_timeout(Some(Duration::from_secs(NETWORK_TIMEOUT))).is_err();
+        if self.s.flush().is_err() {
+            return None;
+        }
+        let _ = self.s.set_read_timeout(Some(Duration::from_secs(NETWORK_TIMEOUT)));
+        let _ = self.s.set_write_timeout(Some(Duration::from_secs(NETWORK_TIMEOUT)));
 
         let mut buf: [u8; 1] = [0];
         match self.s.read_exact(&mut buf) {
@@ -83,8 +85,6 @@ impl ConnectionHandler {
 
         loop {
             let val = cb(&mut self.s, their_msgid);
-
-            let _ = self.s.flush();
 
             match val {
                 Ok(s) => {
@@ -152,7 +152,10 @@ impl ConnectionHandler {
                 return Err("couldn't send data".to_string())
             }
 
-            let _ = s.flush();
+            if s.flush().is_err() {
+                // Couldn't flush the buffer, assume the connection failed.
+                return Err("couldn't flush buffer".to_string())
+            }
 
             // We expect an ACK now.
             let mut ack: [u8; 4] = [0; 4];
@@ -160,7 +163,7 @@ impl ConnectionHandler {
 
             if ack != NETWORK_ACK {
                 // Bad ACK, this error will trigger reconnect.
-                return Err("bad ack".to_string())
+                return Err("bad or no ack".to_string())
             }
 
             // All good.
@@ -286,6 +289,7 @@ fn main() {
     loop {
         prompt("Done! Both machines can be shut down.\n\
                 Do not destroy any DVDs, and ensure there are no DVDs still\n\
-                inside of either machine.");
+                inside of either machine. Place them all in a safe and secure\n\
+                place.");
     }
 }

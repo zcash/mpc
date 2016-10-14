@@ -133,7 +133,9 @@ impl ConnectionHandler {
                 return Err("couldn't send data".to_string());
             }
 
-            let _ = s.flush();
+            if s.flush().is_err() {
+                return Err("couldn't flush buffer".to_string());
+            }
 
             let mut ack: [u8; 4] = [0; 4];
             let _ = s.read_exact(&mut ack);
