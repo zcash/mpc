@@ -82,6 +82,7 @@ pub fn mul_all_by<G: Group>(v: &mut [G], c: Fr) {
     parallel(v, |_, v| {
         for i in v {
             *i = *i * c;
+            i.normalize();
         }
     }, ::THREADS);
 }

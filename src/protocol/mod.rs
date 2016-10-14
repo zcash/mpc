@@ -70,7 +70,9 @@ impl Stage1Contents {
 
             for (g1, g2) in v1.iter_mut().zip(v2.iter_mut()) {
                 *g1 = *g1 * c;
+                g1.normalize();
                 *g2 = *g2 * c;
+                g2.normalize();
                 c = c * s.tau;
             }
         }, ::THREADS);
