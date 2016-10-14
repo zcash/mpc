@@ -415,7 +415,7 @@ fn main() {
                                     warn!("Remote host {} did not supply correct network magic.", addr);
                                 } else {
                                     if
-                                        stream.write(&COORDINATOR_MAGIC).is_ok() &&
+                                        stream.write_all(&COORDINATOR_MAGIC).is_ok() &&
                                         stream.flush().is_ok() &&
                                         stream.set_read_timeout(Some(Duration::from_secs(NETWORK_TIMEOUT))).is_ok() &&
                                         stream.set_write_timeout(Some(Duration::from_secs(NETWORK_TIMEOUT))).is_ok()

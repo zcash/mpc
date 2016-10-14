@@ -57,13 +57,13 @@ impl ConnectionHandler {
         if self.s.set_write_timeout(Some(Duration::from_secs(5))).is_err() {
             return None;
         }
-        if self.s.write(&NETWORK_MAGIC).is_err() {
+        if self.s.write_all(&NETWORK_MAGIC).is_err() {
             return None;
         }
-        if self.s.write(&self.peerid).is_err() {
+        if self.s.write_all(&self.peerid).is_err() {
             return None;
         }
-        if self.s.write(&[self.msgid]).is_err() {
+        if self.s.write_all(&[self.msgid]).is_err() {
             return None;
         }
         if self.s.flush().is_err() {
@@ -138,7 +138,7 @@ impl ConnectionHandler {
 
         self.msgid += 1;
 
-        let _ = self.s.write(&NETWORK_ACK);
+        let _ = self.s.write_all(&NETWORK_ACK);
         let _ = self.s.flush();
 
         msg
