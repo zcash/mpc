@@ -72,6 +72,15 @@ impl ConnectionHandler {
         let _ = self.s.set_read_timeout(Some(Duration::from_secs(NETWORK_TIMEOUT)));
         let _ = self.s.set_write_timeout(Some(Duration::from_secs(NETWORK_TIMEOUT)));
 
+        let mut buf: [u8; 8] = [0; 8];
+        if self.s.read_exact(&mut buf).is_err() {
+            return None;
+        }
+
+        if buf != COORDINATOR_MAGIC {
+            return None;
+        }
+
         let mut buf: [u8; 1] = [0];
         match self.s.read_exact(&mut buf) {
             Ok(_) => Some(buf[0]),
