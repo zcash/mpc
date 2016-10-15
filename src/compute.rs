@@ -78,8 +78,8 @@ fn main() {
     let (hash_of_commitments, mut stage1, prev_msg_hash): (Digest512, Stage1Contents, Digest256) = read_disc(
         "A",
         &format!("Commitment: {}\n\n\
-                  Please type the above commitment into the networked machine.\n\n\
-                  Also, write the string down on a piece of paper.\n\n\
+                  Write this commitment down on paper.\n\n\
+                  Then type the above commitment into the networked machine.\n\n\
                   The networked machine should produce disc 'A'.\n\n\
                   When disc 'A' is in the DVD drive, press [ENTER].", comm.to_string()),
         |f, p| -> Result<_, bincode::rustc_serialize::DecodingError> {
