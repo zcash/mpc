@@ -93,7 +93,7 @@ fn main() {
     let nizks = pubkey.nizks(&mut chacha_rng, &privkey, &hash_of_commitments);
 
     reset();
-    println!("Please wait while disc 'B' is computed... This could take 1 or 2 hours.");
+    println!("Please wait while disc 'B' is computed... This should take 30 minutes to an hour.");
     stage1.transform(&privkey);
 
     let (mut stage2, prev_msg_hash): (Stage2Contents, Digest256) = exchange_disc(
@@ -116,7 +116,7 @@ fn main() {
     drop(stage1);
 
     reset();
-    println!("Please wait while disc 'D' is computed... This could take 1 or 2 hours.");
+    println!("Please wait while disc 'D' is computed... This should take 45 to 90 minutes.");
     stage2.transform(&privkey);
 
     let (mut stage3, prev_msg_hash): (Stage3Contents, Digest256) = exchange_disc(
@@ -137,7 +137,7 @@ fn main() {
     drop(stage2);
 
     reset();
-    println!("Please wait while disc 'F' is computed...");
+    println!("Please wait while disc 'F' is computed... This should take 15-30 minutes.");
     stage3.transform(&privkey);
 
     write_disc(

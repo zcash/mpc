@@ -182,10 +182,11 @@ impl ConnectionHandler {
 }
 
 fn main() {
-    let mut handler = ConnectionHandler::new();
     prompt("Press [ENTER] when you're ready to perform diagnostics of the DVD drive.");
     perform_diagnostics();
     prompt("Diagnostics complete. Press [ENTER] when you're ready to begin the ceremony.");
+
+    let mut handler = ConnectionHandler::new();
 
     let comm;
     {
