@@ -97,8 +97,8 @@ subject /bin/bbsuid o {
 
 # Role: root
 subject /bin/busybox o {
-user_transition_allow compute
-group_transition_allow cdrom
+user_transition_allow compute root
+group_transition_allow cdrom root
 
 	/				h
 	/bin				h
@@ -107,12 +107,19 @@ group_transition_allow cdrom
 	/dev				h
 	/dev/grsec			wcd
 	/dev/log			rw
+	/dev/null           rw
+	/dev/tty            rw
 	/dev/sr0			w
 	/dev/tty1			rw
-	/etc				h
-	/etc/group			r
-	/etc/passwd			r
-	/etc/securetty			r
+	/dev/tty2           rw
+	/etc				r
+	/etc/grsec          h
+	/etc/gshadow        h
+	/etc/gshadow-       h
+	/etc/ppp            h
+	/etc/samba/smbpasswd	h
+	/etc/shadow-        h
+	/etc/ssh            h
 	/lib				h
 	/lib/ld-musl-x86_64.so.1	x
 	/media				h
@@ -125,8 +132,8 @@ group_transition_allow cdrom
 	/proc/mounts			
 	/proc/slabinfo			h
 	/proc/sys			h
-	/root				h
-	/root/.ash_history		a
+	/root				rw
+	/root/.ash_history		rw
 	/sbin				h
 	/sbin/gradm			x
 	/var				h
