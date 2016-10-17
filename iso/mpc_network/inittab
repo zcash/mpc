@@ -4,7 +4,7 @@
 ::sysinit:/sbin/openrc boot
 ::wait:/sbin/openrc default
 
-tty1::wait:/bin/mpc_network
+tty1::respawn:/bin/mpc_network
 tty2::respawn:/sbin/getty 38400 tty2
 
 ::ctrlaltdel:/sbin/reboot
