@@ -4,6 +4,8 @@ clear
 cd /
 
 # Make it so we can eject the live cd.
+echo "Please wait..."
+sleep 15
 /etc/init.d/modloop stop
 sleep 5
 umount /media/cdrom
