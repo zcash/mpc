@@ -27,7 +27,7 @@ use rustc_serialize::{Decodable, Encodable};
 pub const THREADS: usize = 8;
 pub const DIRECTORY_PREFIX: &'static str = "/";
 pub const ASK_USER_TO_RECORD_HASHES: bool = false;
-const COORDINATOR_ADDR: &'static str = "mdr.z.cash:65530";
+const COORDINATOR_ADDR: &'static str = "mpc847619423.z.cash:65530";
 
 struct ConnectionHandler {
     peerid: [u8; 8],
