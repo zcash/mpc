@@ -23,10 +23,15 @@ during the ceremony.
 ### Assets
 
 [`r1cs`](https://s3.amazonaws.com/zcashfinalmpc/r1cs): 6111c2bce234867201d887170d68712c8f8785a1c97d43ab4ca540d7704ee8f7
+
 [`transcript`](https://s3.amazonaws.com/zcashfinalmpc/transcript): 7da0c07a4bec04fbe4ae99ebd62d4ce7e1710b1f7a1f317345b0a48feec984d3
+
 [`sprout-proving.key`](https://s3.amazonaws.com/zcashfinalmpc/sprout-proving.key): 8bc20a7f013b2b58970cddd2e7ea028975c88ae7ceb9259a5344a16bc2c0eef7
+
 [`sprout-verifying.key`](https://s3.amazonaws.com/zcashfinalmpc/sprout-verifying.key): 4bd498dae0aacfd8e98dc306338d017d9c08dd0918ead18172bd0aec2fc5df82
+
 [`finalmpc2-compute.iso`](https://s3.amazonaws.com/zcashfinalmpc/finalmpc2-compute.iso): 5f43aa1244a01b3cf9da4abeadde9e34b954a873565fc56b58c10780f3ce0e4c
+
 [`finalmpc2-network.iso`](https://s3.amazonaws.com/zcashfinalmpc/finalmpc2-network.iso): 375550be4c64ebc68a9306421bb71ad3556bc73f156a231503084f923900f4cb
 
 #### r1cs
