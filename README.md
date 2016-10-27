@@ -14,7 +14,7 @@ The following individuals participated in the ceremony:
 * John Dobbertin
 * Zooko Wilcox
 * Derek Hinch
-* Fabrice Renault
+* Peter Todd
 
 The ceremony used a multi-party computation protocol with the property that the resulting
 parameters are secure unless _all_ of the participants were dishonest or compromised
