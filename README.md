@@ -48,11 +48,13 @@ These are the final parameters that can be built from the transcript.
 
 #### finalmpc2-*.iso
 
-These are reproducibly generated Live CD images used during the ceremony, using a modified Alpine Linux distribution.
+These are reproducibly generated Live CD images used during the ceremony, using a modified [Alpine Linux](https://www.alpinelinux.org/) distribution.
+
+The minimal operating system is patched with [grsecurity](https://grsecurity.net/), an extensive security enhancement to the Linux kernel. The compute nodes have a restrictive RBAC (role-based access control) policy which is intended to allow *only* the execution of code and granting of permissions that are necessary for its function. The ISOs are built inside [Docker](https://www.docker.com/) containers.
 
 ### Code and verification
 
-The code used for the ceremony was tagged at `finalmpc2`.
+The code used for the ceremony was tagged at `finalmpc2`. It's mostly written in [Rust](https://www.rust-lang.org/).
 
 #### ISOs
 
