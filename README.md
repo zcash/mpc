@@ -121,6 +121,8 @@ Licensed under either of
 
 at your option.
 
+This dual license applies to all of the files listed in the assets section of this `README`.
+
 ### Contribution
 
 Unless you explicitly state otherwise, any contribution intentionally
