@@ -42,6 +42,14 @@ This is the rank-1 quadratic constraint system used by Zcash. You can use Zcash 
 
 This is a transcript of the protocol that can be used to verify the protocol's evaluation and construct the proving/verifying keys.
 
+ 1. The participants can use it to verify that their computations were included
+    in the proving/verifying keys
+
+ 2. You can verify that the protocol was performed correctly and the published proving/verifying keys are actually the ones that were
+    generated during the ceremony
+
+It contains the initial commitment of each of the participants, and the contents of their disc 'B', disc 'D' and disc 'F'.
+
 #### sprout-*.key
 
 These are the final parameters that can be built from the transcript.
