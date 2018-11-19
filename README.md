@@ -36,7 +36,7 @@ during the ceremony.
 
 #### r1cs
 
-This is the rank-1 quadratic constraint system used by Zcash. You can use Zcash to construct it with the following PR: <https://github.com/zcash/zcash/pull/1399>.
+This is the rank-1 quadratic constraint system used by Zcash. You can use Zcash to construct it with the following PR: <https://github.com/zcash/zcash/pull/3691>.
 
 #### transcript
 
