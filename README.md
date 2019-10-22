@@ -24,7 +24,7 @@ during the ceremony.
 
 [`r1cs`](https://download.z.cash/zcashfinalmpc/r1cs): 6111c2bce234867201d887170d68712c8f8785a1c97d43ab4ca540d7704ee8f7
 
-[`transcript`](https://download.z.cash/zcashfinalmpc/transcript): 7da0c07a4bec04fbe4ae99ebd62d4ce7e1710b1f7a1f317345b0a48feec984d3
+[`transcript`](https://download.z.cash/zcashfinalmpc/transcript.cached): 7da0c07a4bec04fbe4ae99ebd62d4ce7e1710b1f7a1f317345b0a48feec984d3
 
 [`sprout-proving.key`](https://download.z.cash/zcashfinalmpc/sprout-proving.key): 8bc20a7f013b2b58970cddd2e7ea028975c88ae7ceb9259a5344a16bc2c0eef7
 
